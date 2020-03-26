@@ -16,14 +16,14 @@ as well as their protein sequences.
 
 Using a Nextflow framework, BOFFO will:
 
-    - Align each query protein against each query genome using BLAST
-    - Collect information for each genome
-    - Return a set of tables with the level of similarity and organization of each gene in each genome
+- Align each query protein against each query genome using BLAST
+- Collect information for each genome
+- Return a set of tables with the level of similarity and organization of each gene in each genome
 
 The input data will be:
 
-    - A multi-FASTA with the amino acid sequence of all genes in the operon
-    - A CSV table listing the genomes from NCBI to query
+- A multi-FASTA with the amino acid sequence of all genes in the operon
+- A CSV table listing the genomes from NCBI to query
 
 The CSV table of genomes to query can be obtained from the [NCBI Genome Portal](https://www.ncbi.nlm.nih.gov/genome/browse#!/overview/).
 This portal allows you to filter to your organisms of interest and
