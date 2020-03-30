@@ -42,6 +42,9 @@ workflow {
         exit 0
     }
 
+    // Point to the operon file
+    operon_fasta = file(params.operon)
+
     // Make sure that the input files exist
     if (file(params.genomes).isEmpty()){
         log.info"""
@@ -49,7 +52,7 @@ workflow {
         """.stripIndent()
         exit 1
     }
-    if (file(params.operon).isEmpty()){
+    if (operon_fasta.isEmpty()){
         log.info"""
         The specified --operon file cannot be found!
         """.stripIndent()
@@ -81,7 +84,7 @@ workflow {
     // Align the operon against each genome
     runBLAST(
         fetchFTP.out,
-        file(params.operon)
+        operon_fasta
     )
 
 }
@@ -144,6 +147,9 @@ tblastn \
     -query ${operon_fasta} \
     -subject <(gunzip -c ${fasta_gz}) \
     -out ${uuid}.aln
+    -out ${uuid}.aln \
+    -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send" \
+    -evalue 0.001
 
 echo "Compressing alignment file"
 
