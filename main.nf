@@ -87,6 +87,16 @@ workflow {
         operon_fasta
     )
 
+    // Parse each individual alignment
+    parseAlignments(
+        runBLAST.out
+    )
+
+    // Make a single output table
+    collectResults(
+        parseAlignments.out.toSortedList()
+    )
+
 }
 
 // #############
@@ -146,9 +156,8 @@ ls -lahtr
 tblastn \
     -query ${operon_fasta} \
     -subject <(gunzip -c ${fasta_gz}) \
-    -out ${uuid}.aln
     -out ${uuid}.aln \
-    -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send" \
+    -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend qlen sstart send slen" \
     -evalue 0.001
 
 echo "Compressing alignment file"
@@ -156,5 +165,125 @@ echo "Compressing alignment file"
 gzip ${uuid}.aln
 
 echo Done
+"""
+}
+
+// Parse each individual alignment file
+process parseAlignments {
+    tag "Identify operons"
+    container 'quay.io/fhcrc-microbiome/python-pandas@sha256:b57953e513f1f797522f88fa6afca187cdd190ca90181fa91846caa66bdeb5ed'
+    label 'io_limited'
+    errorStrategy "retry"
+
+    input:
+        tuple val(uuid), val(genome_name), path(aln_gz)
+    
+    output:
+        file "${uuid}.json.gz"
+    
+"""
+#!/usr/bin/env python3
+import pandas as pd
+import json
+import gzip
+
+print("Processing alignments for ${genome_name.replaceAll(/"/, "")} against ${uuid}")
+
+# Read in the alignment table
+df = pd.read_csv(
+    "${aln_gz}", 
+    compression = "gzip", 
+    sep = "\\t",
+    header = None,
+    names = [
+        "qaccver",
+        "saccver",
+        "pident",
+        "length",
+        "mismatch",
+        "gapopen",
+        "qstart",
+        "qend",
+        "qlen",
+        "sstart",
+        "send",
+        "slen"
+    ]
+)
+
+# Calculate coverage and filter by coverage and identity
+df = df.assign(
+    qcov = 100 * ((df["qend"] - df["qstart"]) + 1).abs() / df["qlen"]
+).query(
+    "qcov >= ${params.min_coverage}"
+).query(
+    "pident >= ${params.min_identity}"
+)
+
+# Format a dict with the locations of all genes
+
+output = dict()
+output["genome_id"] = "${uuid}"
+output["genome_name"] = "${genome_name.replaceAll(/"/, "")}"
+
+for gene_name, gene_df in df.groupby("qaccver"):
+    print("Found %s alignments for %s" % (gene_df.shape[0], gene_name))
+    output[
+        gene_name
+    ] = "; ".join([
+        "%s: %s - %s" % (r["saccver"], r["sstart"], r["send"])
+        for _, r in gene_df.iterrows()
+    ])
+
+with gzip.open("${uuid}.json.gz", "wt") as handle:
+    json.dump(
+        output,
+        handle
+    )
+
+print("Done")
+
+"""
+}
+
+// Parse each individual alignment file
+process collectResults {
+    tag "Make a single table"
+    container 'quay.io/fhcrc-microbiome/python-pandas@sha256:b57953e513f1f797522f88fa6afca187cdd190ca90181fa91846caa66bdeb5ed'
+    label 'io_limited'
+    publishDir "${params.output_folder}"
+    // errorStrategy "retry"
+
+    input:
+        file json_gz_list
+    
+    output:
+        file "${params.output_prefix}.csv.gz"
+    
+"""
+#!/usr/bin/env python3
+import pandas as pd
+import json
+import gzip
+
+dat = []
+
+for fp in "${json_gz_list}".split(" "):
+    print("Reading in %s" % fp)
+    dat.append(
+        json.load(
+            gzip.open(
+                fp,
+                "rt"
+            )
+        )
+    )
+
+print("Making a single output table")
+df = pd.DataFrame(dat)
+
+print("Writing out to ${params.output_prefix}.csv.gz")
+df.to_csv("${params.output_prefix}.csv.gz", index=None, compression="gzip")
+print("Done")
 """
 }
