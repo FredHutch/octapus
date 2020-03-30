@@ -29,3 +29,21 @@ The CSV table of genomes to query can be obtained from the [NCBI Genome Portal](
 This portal allows you to filter to your organisms of interest and
 download a summary of those genomes as a CSV table. That is the file
 which can be used as an input to BOFFO.
+
+## Usage
+
+```
+Usage:
+
+nextflow run FredHutch/BOFFO <ARGUMENTS>
+
+Required Arguments:
+  --genomes             CSV file listing genomes (from https://www.ncbi.nlm.nih.gov/genome/browse)
+  --operon              Amino acid sequences to search for, in multi-FASTA format
+  --output_folder       Folder to write output files to
+  --output_prefix       Prefix to use for output file names
+
+Optional Arguments:
+  --min_identity        Percent identity threshold used for alignment (default: 90)
+  --min_coverage        Percent coverage threshold used for alignment (default: 50)
+```
