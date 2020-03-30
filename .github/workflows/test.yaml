@@ -1,0 +1,28 @@
+name: BOFFO
+
+on: [push, pull_request]  
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      NXF_ANSI_LOG: 0
+      NXF_VER: 20.01.0
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Nextflow
+        run: |
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name:  Run BOFFO
+        run: |
+          nextflow run main.nf \
+            --genomes test_data/genomes.csv \
+            --operon test_data/lac_operon.fasta \
+            --output_folder output \
+            --output_prefix test1 \
+            -profile testing \
+            -work-dir work/ \
+            -with-docker ubuntu:20.04 \
+
