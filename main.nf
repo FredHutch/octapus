@@ -78,6 +78,12 @@ workflow {
         split_genome_ch
     )
 
+    // Align the operon against each genome
+    runBLAST(
+        fetchFTP.out,
+        file(params.operon)
+    )
+
 }
 
 // #############
@@ -95,7 +101,7 @@ process fetchFTP {
         tuple val(uuid), val(genome_name), val(ftp_prefix)
     
     output:
-        file "${uuid}.fasta.gz"
+        tuple val(uuid), val(genome_name), file("${uuid}.fasta.gz")
     
 """
 #!/bin/bash
@@ -109,5 +115,40 @@ wget --quiet -O ${uuid}.fasta.gz ${ftp_prefix}/${uuid}_genomic.fna.gz
 # Make sure the file is gzip compressed
 (gzip -t ${uuid}.fasta.gz && echo "${uuid}.fasta.gz is in gzip format") || ( echo "${uuid}.fasta.gz is NOT in gzip format" && exit 1 )
 
+"""
+}
+
+// Align the operon against each individual genome
+process runBLAST {
+    tag "Align operon"
+    container 'quay.io/fhcrc-microbiome/blast@sha256:1db09d0917e52913ed711fcc5eb281c06d0bb632ec8cd5a03610e2c3377e1753'
+    label 'io_limited'
+    errorStrategy "retry"
+
+    input:
+        tuple val(uuid), val(genome_name), path(fasta_gz)
+        file operon_fasta
+    
+    output:
+        tuple val(uuid), val(genome_name), file("${uuid}.aln.gz")
+    
+"""
+#!/bin/bash
+set -e
+
+echo "Running alignment for ${uuid}"
+
+ls -lahtr
+
+tblastn \
+    -query ${operon_fasta} \
+    -subject <(gunzip -c ${fasta_gz}) \
+    -out ${uuid}.aln
+
+echo "Compressing alignment file"
+
+gzip ${uuid}.aln
+
+echo Done
 """
 }
