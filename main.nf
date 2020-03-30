@@ -11,7 +11,6 @@ params.genomes = false
 params.operon = false
 params.min_identity = 90
 params.min_coverage = 50
-params.batchsize = 10
 
 // Function which prints help message text
 def helpMessage() {
@@ -29,7 +28,6 @@ def helpMessage() {
     Optional Arguments:
       --min_identity        Percent identity threshold used for alignment (default: 90)
       --min_coverage        Percent coverage threshold used for alignment (default: 50)
-      --batchsize           Number of genomes to process in a batch (default: 10)
 
     """.stripIndent()
 }
