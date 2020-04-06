@@ -11,6 +11,7 @@ params.genomes = false
 params.operon = false
 params.min_identity = 90
 params.min_coverage = 50
+params.max_operon_gap = 10000
 
 // Function which prints help message text
 def helpMessage() {
@@ -28,6 +29,7 @@ def helpMessage() {
     Optional Arguments:
       --min_identity        Percent identity threshold used for alignment (default: 90)
       --min_coverage        Percent coverage threshold used for alignment (default: 50)
+      --max_operon_gap      Maximum gap between genes in the same 'operon' (only used for the 'operon_context' output column) (default: 10000)
 
     """.stripIndent()
 }
@@ -179,7 +181,7 @@ process parseAlignments {
         tuple val(uuid), val(genome_name), path(aln_gz)
     
     output:
-        file "${uuid}.json.gz"
+        file "${uuid}.csv.gz"
     
 """
 #!/usr/bin/env python3
@@ -196,50 +198,160 @@ df = pd.read_csv(
     sep = "\\t",
     header = None,
     names = [
-        "qaccver",
-        "saccver",
-        "pident",
-        "length",
+        "gene_name",
+        "contig_name",
+        "pct_iden",
+        "alignment_length",
         "mismatch",
         "gapopen",
-        "qstart",
-        "qend",
-        "qlen",
-        "sstart",
-        "send",
-        "slen"
+        "gene_start",
+        "gene_end",
+        "gene_len",
+        "contig_start",
+        "contig_end",
+        "contig_len"
     ]
 )
 
 # Calculate coverage and filter by coverage and identity
 df = df.assign(
-    qcov = 100 * ((df["qend"] - df["qstart"]) + 1).abs() / df["qlen"]
+    gene_cov = 100 * ((df["gene_end"] - df["gene_start"]) + 1).abs() / df["gene_len"]
 ).query(
-    "qcov >= ${params.min_coverage}"
+    "gene_cov >= ${params.min_coverage}"
 ).query(
-    "pident >= ${params.min_identity}"
+    "pct_iden >= ${params.min_identity}"
 )
 
-# Format a dict with the locations of all genes
+# Assign the strand for each gene
+df = df.assign(
+    strand = df.apply(lambda r: "+" if r["contig_start"] < r["contig_end"] else "-", axis=1)
+)
 
-output = dict()
-output["genome_id"] = "${uuid}"
-output["genome_name"] = "${genome_name.replaceAll(/"/, "")}"
+# Sort by contig length (descending) and alignment position (ascending)
+df.sort_values(
+    by = ["contig_len", "contig_name", "contig_start"],
+    ascending = [False, True, True],
+    inplace = True
+)
 
-for gene_name, gene_df in df.groupby("qaccver"):
-    print("Found %s alignments for %s" % (gene_df.shape[0], gene_name))
-    output[
-        gene_name
-    ] = "; ".join([
-        "%s: %s - %s" % (r["saccver"], r["sstart"], r["send"])
-        for _, r in gene_df.iterrows()
+# Function to figure out the "genome_context" for each gene
+def genome_context(df):
+
+    # Return the list of genes detected in the genome, relative to each alignment
+    output = []
+
+    # Make the list for the forward strand
+    fwd_str = " :: ".join([
+        "%s (%s)" % (i["gene_name"], i["strand"])
+        for _, i in df.iterrows()
     ])
+    # and the reverse strand
+    rev_str = " :: ".join([
+        "%s (%s)" % (i["gene_name"], "-" if i["strand"] == "+" else "+")
+        for _, i in df.iterrows()
+    ][::-1])
 
-with gzip.open("${uuid}.json.gz", "wt") as handle:
-    json.dump(
-        output,
-        handle
-    )
+    # For each gene, use the appropriate list
+    for ix, r in df.iterrows():
+        if r["strand"] == '+':
+            output.append(fwd_str)
+        # For genes on the - strand, switch the strand reported for the other genes as well as the order
+        else:
+            output.append(rev_str)
+
+    return pd.Series(output, index=df.index)
+
+# Function to figure out the "operon_context" for each gene
+def operon_context(df, maximum_gap):
+
+    # Walk through the genome and find each of the "operons"
+    operons = []
+    last_contig = None
+    last_pos = None
+    for ix, r in df.iterrows():
+
+        # Start of a new contig, and therefore operon
+        if last_contig is None or r["contig_name"] != last_contig:
+            operons.append([ix])
+
+        # Add to an existing operon
+        elif (min(r["contig_start"], r["contig_end"]) - last_pos) < ${params.max_operon_gap}:
+            operons[-1].append(ix)
+        
+        # Outside the maximum gap, so start a new operon
+        else:
+            operons.append([ix])
+
+        # Set the temp values for the next iteration
+        last_contig = r["contig_name"]
+        last_pos = max(r["contig_start"], r["contig_end"])
+
+    # Return the list of genes detected in the genome, relative to each alignment, within a given distance
+    output = []
+
+    # Walk through each operon
+    for operon in operons:
+        # Format a string for the positive strand
+        fwd_str = " :: ".join([
+            "%s (%s)" % (i["gene_name"], i["strand"])
+            for _, i in df.reindex(index=operon).iterrows()
+        ])
+        # and the reverse strand
+        rev_str = " :: ".join([
+            "%s (%s)" % (i["gene_name"], "-" if i["strand"] == "+" else "+")
+            for _, i in df.reindex(index=operon).iterrows()
+        ][::-1])
+
+        for ix in operon:
+            if df.loc[ix, "strand"] == "+":
+                output.append(fwd_str)
+            else:
+                output.append(rev_str)
+            
+    return pd.Series(output, index=df.index)
+
+
+# Figure out the "genome_context" and "operon_context" for each hit
+df = df.assign(
+    genome_context = genome_context(df),
+    operon_context = operon_context(df, ${params.max_operon_gap}),
+)
+
+# Add the genome ID and name
+df = df.assign(
+    genome_id = "${uuid}",
+    genome_name = "${genome_name.replaceAll(/"/, "")}"
+)
+
+# Write out as a formatted CSV
+print("Writing out to CSV")
+df.reindex(
+    columns = [
+        "genome_name",
+        "genome_id",
+        "contig_name",
+        "contig_start",
+        "contig_end",
+        "contig_len",
+        "gene_name",
+        "gene_start",
+        "gene_end",
+        "gene_len",
+        "gene_cov",
+        "pct_iden",
+        "alignment_length",
+        "gapopen",
+        "mismatch",
+        "genome_context",
+        "operon_context",
+        "strand",
+    ]
+).to_csv(
+    "${uuid}.csv.gz",
+    index = None,
+    compression = "gzip",
+    sep = ","
+)
 
 print("Done")
 
@@ -251,11 +363,11 @@ process collectResults {
     tag "Make a single table"
     container 'quay.io/fhcrc-microbiome/python-pandas@sha256:b57953e513f1f797522f88fa6afca187cdd190ca90181fa91846caa66bdeb5ed'
     label 'io_limited'
-    publishDir "${params.output_folder}"
-    // errorStrategy "retry"
+    publishDir "${params.output_folder}", mode: "copy", overwrite: true
+    errorStrategy "retry"
 
     input:
-        file json_gz_list
+        file csv_gz_list
     
     output:
         file "${params.output_prefix}.csv.gz"
@@ -266,21 +378,11 @@ import pandas as pd
 import json
 import gzip
 
-dat = []
-
-for fp in "${json_gz_list}".split(" "):
-    print("Reading in %s" % fp)
-    dat.append(
-        json.load(
-            gzip.open(
-                fp,
-                "rt"
-            )
-        )
-    )
-
 print("Making a single output table")
-df = pd.DataFrame(dat)
+df = pd.concat([
+    pd.read_csv(fp)
+    for fp in "${csv_gz_list}".split(" ")
+], sort=True)
 
 print("Writing out to ${params.output_prefix}.csv.gz")
 df.to_csv("${params.output_prefix}.csv.gz", index=None, compression="gzip")
