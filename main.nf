@@ -317,10 +317,11 @@ df = df.assign(
     operon_context = operon_context(df, ${params.max_operon_gap}),
 )
 
-# Add the genome ID and name
+# Add the genome ID, name, and operon size
 df = df.assign(
     genome_id = "${uuid}",
-    genome_name = "${genome_name.replaceAll(/"/, "")}"
+    genome_name = "${genome_name.replaceAll(/"/, "")}",
+    operon_size = df["operon_context"].apply(lambda n: len(n.split(" :: ")))
 )
 
 # Write out as a formatted CSV
@@ -344,6 +345,7 @@ df.reindex(
         "mismatch",
         "genome_context",
         "operon_context",
+        "operon_size",
         "strand",
     ]
 ).to_csv(
