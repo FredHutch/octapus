@@ -289,20 +289,21 @@ df = pd.read_csv(
     ]
 )
 
-# Check to see if there are any alignments
+# Calculate coverage and filter by coverage and identity
+df = df.assign(
+    gene_cov = 100 * ((df["gene_end"] - df["gene_start"]) + 1).abs() / df["gene_len"]
+).query(
+    "gene_cov >= ${params.min_coverage}"
+).query(
+    "pct_iden >= ${params.min_identity}"
+)
+
+# Check to see if there are any alignments passing the filter
 if df.shape[0] == 0:
-    print("Zero alignments found -- skipping")
+    print("Zero alignments found passing the filter -- skipping")
 
 else:
 
-    # Calculate coverage and filter by coverage and identity
-    df = df.assign(
-        gene_cov = 100 * ((df["gene_end"] - df["gene_start"]) + 1).abs() / df["gene_len"]
-    ).query(
-        "gene_cov >= ${params.min_coverage}"
-    ).query(
-        "pct_iden >= ${params.min_identity}"
-    )
 
     # Assign the strand for each gene
     df = df.assign(
