@@ -181,58 +181,13 @@ process parseAlignments {
         tuple val(uuid), val(genome_name), path(aln_gz)
     
     output:
-        file "${uuid}.csv.gz"
+        file "${uuid}.csv.gz" optional: true
     
 """
 #!/usr/bin/env python3
 import pandas as pd
 import json
 import gzip
-
-print("Processing alignments for ${genome_name.replaceAll(/"/, "")} against ${uuid}")
-
-# Read in the alignment table
-df = pd.read_csv(
-    "${aln_gz}", 
-    compression = "gzip", 
-    sep = "\\t",
-    header = None,
-    names = [
-        "gene_name",
-        "contig_name",
-        "pct_iden",
-        "alignment_length",
-        "mismatch",
-        "gapopen",
-        "gene_start",
-        "gene_end",
-        "gene_len",
-        "contig_start",
-        "contig_end",
-        "contig_len"
-    ]
-)
-
-# Calculate coverage and filter by coverage and identity
-df = df.assign(
-    gene_cov = 100 * ((df["gene_end"] - df["gene_start"]) + 1).abs() / df["gene_len"]
-).query(
-    "gene_cov >= ${params.min_coverage}"
-).query(
-    "pct_iden >= ${params.min_identity}"
-)
-
-# Assign the strand for each gene
-df = df.assign(
-    strand = df.apply(lambda r: "+" if r["contig_start"] < r["contig_end"] else "-", axis=1)
-)
-
-# Sort by contig length (descending) and alignment position (ascending)
-df.sort_values(
-    by = ["contig_len", "contig_name", "contig_start"],
-    ascending = [False, True, True],
-    inplace = True
-)
 
 # Function to figure out the "genome_context" for each gene
 def genome_context(df):
@@ -310,50 +265,100 @@ def operon_context(df, maximum_gap):
             
     return pd.Series(output, index=df.index)
 
+print("Processing alignments for ${genome_name.replaceAll(/"/, "")} against ${uuid}")
 
-# Figure out the "genome_context" and "operon_context" for each hit
-df = df.assign(
-    genome_context = genome_context(df),
-    operon_context = operon_context(df, ${params.max_operon_gap}),
-)
-
-# Add the genome ID, name, and operon size
-df = df.assign(
-    genome_id = "${uuid}",
-    genome_name = "${genome_name.replaceAll(/"/, "")}",
-    operon_size = df["operon_context"].apply(lambda n: len(n.split(" :: ")))
-)
-
-# Write out as a formatted CSV
-print("Writing out to CSV")
-df.reindex(
-    columns = [
-        "genome_name",
-        "genome_id",
-        "contig_name",
-        "contig_len",
+# Read in the alignment table
+df = pd.read_csv(
+    "${aln_gz}", 
+    compression = "gzip", 
+    sep = "\\t",
+    header = None,
+    names = [
         "gene_name",
+        "contig_name",
+        "pct_iden",
+        "alignment_length",
+        "mismatch",
+        "gapopen",
+        "gene_start",
+        "gene_end",
         "gene_len",
         "contig_start",
         "contig_end",
-        "genome_context",
-        "operon_context",
-        "operon_size",
-        "pct_iden",
-        "gene_cov",
-        "mismatch",
-        "gapopen",
-        "strand",
-        "alignment_length",
-        "gene_start",
-        "gene_end",
+        "contig_len"
     ]
-).to_csv(
-    "${uuid}.csv.gz",
-    index = None,
-    compression = "gzip",
-    sep = ","
 )
+
+# Check to see if there are any alignments
+if df.shape[0] == 0:
+    print("Zero alignments found -- skipping")
+
+else:
+
+    # Calculate coverage and filter by coverage and identity
+    df = df.assign(
+        gene_cov = 100 * ((df["gene_end"] - df["gene_start"]) + 1).abs() / df["gene_len"]
+    ).query(
+        "gene_cov >= ${params.min_coverage}"
+    ).query(
+        "pct_iden >= ${params.min_identity}"
+    )
+
+    # Assign the strand for each gene
+    df = df.assign(
+        strand = df.apply(lambda r: "+" if r["contig_start"] < r["contig_end"] else "-", axis=1)
+    )
+
+    # Sort by contig length (descending) and alignment position (ascending)
+    df.sort_values(
+        by = ["contig_len", "contig_name", "contig_start"],
+        ascending = [False, True, True],
+        inplace = True
+    )
+
+    # Figure out the "genome_context" and "operon_context" for each hit
+    df = df.assign(
+        genome_context = genome_context(df),
+        operon_context = operon_context(df, ${params.max_operon_gap}),
+    )
+
+    # Add the genome ID, name, and operon size
+    df = df.assign(
+        genome_id = "${uuid}",
+        genome_name = "${genome_name.replaceAll(/"/, "")}",
+        operon_size = df["operon_context"].apply(lambda n: len(n.split(" :: ")))
+    )
+
+    # Write out as a formatted CSV
+    print("Writing out to CSV")
+    df.reindex(
+        columns = [
+            "genome_name",
+            "genome_id",
+            "contig_name",
+            "contig_len",
+            "gene_name",
+            "gene_len",
+            "contig_start",
+            "contig_end",
+            "genome_context",
+            "operon_context",
+            "operon_size",
+            "pct_iden",
+            "gene_cov",
+            "mismatch",
+            "gapopen",
+            "strand",
+            "alignment_length",
+            "gene_start",
+            "gene_end",
+        ]
+    ).to_csv(
+        "${uuid}.csv.gz",
+        index = None,
+        compression = "gzip",
+        sep = ","
+    )
 
 print("Done")
 
