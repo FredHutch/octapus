@@ -181,7 +181,7 @@ process parseAlignments {
         tuple val(uuid), val(genome_name), path(aln_gz)
     
     output:
-        file "${uuid}.csv.gz" optional: true
+        file("${uuid}.csv.gz") optional true
     
 """
 #!/usr/bin/env python3
