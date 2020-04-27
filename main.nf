@@ -13,6 +13,10 @@ params.min_identity = 90
 params.min_coverage = 50
 params.max_operon_gap = 10000
 
+// Docker containers reused across processes
+container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
+
+
 // Function which prints help message text
 def helpMessage() {
     log.info"""
@@ -173,8 +177,8 @@ echo Done
 // Parse each individual alignment file
 process parseAlignments {
     tag "Identify operons"
-    container 'quay.io/fhcrc-microbiome/python-pandas@sha256:b57953e513f1f797522f88fa6afca187cdd190ca90181fa91846caa66bdeb5ed'
-    label 'mem_medium'
+    container "${container__pandas}"
+    label 'io_limited'
     errorStrategy "retry"
 
     input:
@@ -369,7 +373,7 @@ print("Done")
 // Parse each individual alignment file
 process collectResults {
     tag "Make a single table"
-    container 'quay.io/fhcrc-microbiome/python-pandas@sha256:b57953e513f1f797522f88fa6afca187cdd190ca90181fa91846caa66bdeb5ed'
+    container "${container__pandas}"
     label 'io_limited'
     publishDir "${params.output_folder}", mode: "copy", overwrite: true
     errorStrategy "retry"
