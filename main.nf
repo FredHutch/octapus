@@ -174,7 +174,7 @@ echo Done
 process parseAlignments {
     tag "Identify operons"
     container 'quay.io/fhcrc-microbiome/python-pandas@sha256:b57953e513f1f797522f88fa6afca187cdd190ca90181fa91846caa66bdeb5ed'
-    label 'io_limited'
+    label 'mem_medium'
     errorStrategy "retry"
 
     input:
