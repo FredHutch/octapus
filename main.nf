@@ -207,8 +207,10 @@ df = df.reindex(
 # Remove rows where the "GenBank FTP" doesn't start with "ftp://"
 input_count = df.shape[0]
 df = df.loc[
-    df["GenBank FTP"].apply(
-        lambda n: n.apply(str).startswith("ftp://")
+    df["GenBank FTP"].fillna(
+        ""
+    ).apply(
+        lambda n: str(n).startswith("ftp://")
     )
 ]
 print("%d / %d rows have valid FTP paths" % (input_count, df.shape[0]))
