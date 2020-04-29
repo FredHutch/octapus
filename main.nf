@@ -66,20 +66,20 @@ workflow {
     }
 
     // Parse the manifest to get a name and FTP prefix for each genome
-    Channel.from(
-        sanitize_manifest(
-            file(params.genomes)
-        ).out
-    ).splitCsv(
-        header: true
+    sanitize_manifest(
+        file(params.genomes)
+    )
+    sanitize_manifest.out.map {
+        r -> r.splitCsv(
+            header: true
+        )
+    }.flatten(
     ).map {
         r -> [
             r["GenBank FTP"].split("/")[-1].replaceAll(/"/, ""), // Unique genome ID
             r["#Organism Name"],                                 // Readable name
             r["GenBank FTP"]                                     // FTP folder containing the genome
         ]
-    }.filter {
-        it[1].length() > 1
     }.set {
         split_genome_ch
     }
@@ -186,12 +186,13 @@ process sanitize_manifest {
         path "raw.manifest.csv"
     
     output:
-        path "manifest.csv"
+        path "manifest.csv", emit: manifest
     
 """
 #!/usr/bin/env python3
 
 import pandas as pd
+import re
 
 df = pd.read_csv("raw.manifest.csv")
 
