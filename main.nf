@@ -69,7 +69,7 @@ workflow {
     Channel.from(
         sanitize_manifest(
             file(params.genomes)
-        )
+        ).out
     ).splitCsv(
         header: true
     ).map {
