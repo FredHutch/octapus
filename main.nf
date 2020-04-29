@@ -67,7 +67,9 @@ workflow {
 
     // Parse the manifest to get a name and FTP prefix for each genome
     Channel.from(
-        file(params.genomes)
+        sanitize_manifest(
+            file(params.genomes)
+        )
     ).splitCsv(
         header: true
     ).map {
@@ -171,6 +173,54 @@ echo "Compressing alignment file"
 gzip ${uuid}.aln
 
 echo Done
+"""
+}
+
+// Parse the manifest and sanitize the fields
+process sanitize_manifest {
+    container "${container__pandas}"
+    label 'io_limited'
+    errorStrategy "retry"
+
+    input:
+        path "raw.manifest.csv"
+    
+    output:
+        path "manifest.csv"
+    
+"""
+#!/usr/bin/env python3
+
+import pandas as pd
+
+df = pd.read_csv("raw.manifest.csv")
+
+print("Subsetting to two columns")
+df = df.reindex(
+    columns = [
+        "GenBank FTP",
+        "#Organism Name"
+    ]
+)
+
+# Remove rows where the "GenBank FTP" doesn't start with "ftp://"
+input_count = df.shape[0]
+df = df.loc[
+    df["GenBank FTP"].apply(
+        lambda n: n.startswith("ftp://")
+    )
+]
+print("%d / %d rows have valid FTP paths" % (input_count, df.shape[0]))
+
+# Force organism names to be alphanumeric
+df = df.apply(
+    lambda c: c.apply(lambda n: re.sub('[^0-9a-zA-Z .]+', '_', n)) if c.name == "#Organism Name" else c
+)
+
+# Now make sure that every URL is unique
+assert df["GenBank FTP"].unique().shape[0] == df.shape[0], df["GenBank FTP"].value_counts().head()
+
+df.to_csv("manifest.csv", index=None, sep=",")
 """
 }
 
