@@ -208,7 +208,7 @@ df = df.reindex(
 input_count = df.shape[0]
 df = df.loc[
     df["GenBank FTP"].apply(
-        lambda n: n.startswith("ftp://")
+        lambda n: n.apply(str).startswith("ftp://")
     )
 ]
 print("%d / %d rows have valid FTP paths" % (input_count, df.shape[0]))
