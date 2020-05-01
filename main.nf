@@ -122,7 +122,7 @@ workflow {
 
     // Make a single output table
     collectFinalResults(
-        collectResultsRound2.collect()
+        collectResultsRound2.out.collect()
     )
 
 }
