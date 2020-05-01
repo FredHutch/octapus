@@ -12,6 +12,17 @@ params.operon = false
 params.min_identity = 90
 params.min_coverage = 50
 params.max_operon_gap = 10000
+params.batchsize = 100
+
+// Import modules
+include {
+    collectResults as collectResultsRound1;
+    collectResults as collectResultsRound2;
+    collectFinalResults;
+} from './modules/modules' params(
+    output_prefix: params.output_prefix,
+    output_folder: params.output_folder,
+)
 
 // Docker containers reused across processes
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
@@ -34,6 +45,7 @@ def helpMessage() {
       --min_identity        Percent identity threshold used for alignment (default: 90)
       --min_coverage        Percent coverage threshold used for alignment (default: 50)
       --max_operon_gap      Maximum gap between genes in the same 'operon' (only used for the 'operon_context' output column) (default: 10000)
+      --batchsize           Number of samples to join in each batch (default: 100)
 
     """.stripIndent()
 }
@@ -100,9 +112,17 @@ workflow {
         runBLAST.out
     )
 
+    // Collect results in rounds
+    collectResultsRound1(
+        parseAlignments.out.collate(params.batchsize)
+    )
+    collectResultsRound2(
+        collectResultsRound1.out.collate(params.batchsize)
+    )
+
     // Make a single output table
-    collectResults(
-        parseAlignments.out.toSortedList()
+    collectFinalResults(
+        collectResultsRound2.collect()
     )
 
 }
@@ -420,37 +440,5 @@ else:
 
 print("Done")
 
-"""
-}
-
-// Parse each individual alignment file
-process collectResults {
-    tag "Make a single table"
-    container "${container__pandas}"
-    label 'io_limited'
-    publishDir "${params.output_folder}", mode: "copy", overwrite: true
-    errorStrategy "retry"
-
-    input:
-        file csv_gz_list
-    
-    output:
-        file "${params.output_prefix}.csv.gz"
-    
-"""
-#!/usr/bin/env python3
-import pandas as pd
-import json
-import gzip
-
-print("Making a single output table")
-df = pd.concat([
-    pd.read_csv(fp)
-    for fp in "${csv_gz_list}".split(" ")
-], sort=True)
-
-print("Writing out to ${params.output_prefix}.csv.gz")
-df.to_csv("${params.output_prefix}.csv.gz", index=None, compression="gzip")
-print("Done")
 """
 }
