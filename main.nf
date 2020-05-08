@@ -26,6 +26,7 @@ include {
 
 // Docker containers reused across processes
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
+container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
 
 
 // Function which prints help message text
@@ -442,3 +443,24 @@ print("Done")
 
 """
 }
+
+// Make a results summary PDF
+process summaryPDF {
+    tag "Process final results"
+    container "${container__plotting}"
+    label 'io_limited'
+    errorStrategy "retry"
+
+    input:
+        file results_csv_gz
+    
+    output:
+        file "${params.output_prefix}.pdf"
+    
+"""
+#!/bin/bash
+
+set -e
+
+make_summary_figures.py "${results_csv_gz}" "${${params.output_prefix}.pdf}"
+"""
