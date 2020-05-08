@@ -467,6 +467,6 @@ process summaryPDF {
 
 set -e
 
-make_summary_figures.py "${results_csv_gz}" "${${params.output_prefix}.pdf}"
+make_summary_figures.py "${results_csv_gz}" "${params.output_prefix}.pdf"
 """
 }
