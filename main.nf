@@ -126,6 +126,11 @@ workflow {
         collectResultsRound2.out.collect()
     )
 
+    // Make the summary PDF
+    summaryPDF(
+        collectFinalResults.out
+    )
+
 }
 
 // #############
@@ -464,3 +469,4 @@ set -e
 
 make_summary_figures.py "${results_csv_gz}" "${${params.output_prefix}.pdf}"
 """
+}
