@@ -52,7 +52,34 @@ else:
     ], sort=True)
 
     print("Writing out to %s" % output_fp)
-    df.to_csv(output_fp, index=None, compression="gzip")
+    df.reindex(
+        columns = [
+            "operon_context",
+            "operon_size",
+            "genome_context",
+            "genome_id",
+            "genome_name",
+            "contig_name",
+            "contig_start",
+            "contig_end",
+            "contig_len",
+            "strand",
+            "alignment_length",
+            "gene_name",
+            "gene_start",
+            "gene_end",
+            "gene_len",
+            "gene_cov",
+            "gapopen",
+            "mismatch",
+            "pct_iden",
+            "aligned_sequence",
+        ]
+    ).to_csv(
+        output_fp, 
+        index=None, 
+        compression="gzip"
+    )
 
 print("Done")
 """

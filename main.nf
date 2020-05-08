@@ -113,9 +113,19 @@ workflow {
         runBLAST.out
     )
 
+    // Join the parsed alignments with the FASTA for each genome
+    // For each alignment, extract the sequence of the aligned region
+    extractAlignments(
+        fetchFTP.out.join(
+            parseAlignments.out.map {
+                r -> [r.name.replaceAll(/.csv.gz/, ""), r]
+            }
+        )
+    )
+
     // Collect results in rounds
     collectResultsRound1(
-        parseAlignments.out.collate(params.batchsize)
+        extractAlignments.out.collate(params.batchsize)
     )
     collectResultsRound2(
         collectResultsRound1.out.collate(params.batchsize)
@@ -124,6 +134,11 @@ workflow {
     // Make a single output table
     collectFinalResults(
         collectResultsRound2.out.collect()
+    )
+
+    // Make the FASTA of aligned sequences
+    formatFASTA(
+        collectFinalResults.out
     )
 
     // Make the summary PDF
@@ -201,6 +216,7 @@ gzip ${uuid}.aln
 echo Done
 """
 }
+
 
 // Parse the manifest and sanitize the fields
 process sanitize_manifest {
@@ -449,12 +465,129 @@ print("Done")
 """
 }
 
+
+// Extract the sequence of the aligned regions
+process extractAlignments {
+    container 'quay.io/fhcrc-microbiome/biopython-pandas:latest'
+    label 'io_limited'
+    errorStrategy "retry"
+
+    input:
+        tuple val(uuid), val(genome_name), path(fasta_gz), path(aln_gz)
+    
+    output:
+        path "${uuid}.withSeq.csv.gz"
+    
+"""
+#!/usr/bin/env python3
+
+from Bio.SeqIO.FastaIO import SimpleFastaParser
+from Bio.Seq import Seq
+import gzip
+import pandas as pd
+
+# Read in all of the sequences for this genome
+genome_seqs = dict()
+for header, seq in SimpleFastaParser(gzip.open(
+    "${fasta_gz}",
+    "rt"
+)):
+    # Parse the contig name from the header
+    n = header.split(" ")[0]
+    print("Read in %s - %d bps" % (n, len(seq)))
+    genome_seqs[n] = seq
+
+# Read in the table
+df = pd.read_csv("${aln_gz}")
+
+# Define a function to parse the aligned region for a given row
+def extract_aligned_sequence(r):
+
+    # Get the information for this row of the table
+    contig_name = r["contig_name"]
+    start_pos = r["contig_start"]
+    end_pos = r["contig_end"]
+
+    # Make sure that this contig is in the FASTA
+    assert contig_name in genome_seqs, "Couldn't find %s in FASTA" % contig_name
+
+    # If the alignment is +, return this region
+    if start_pos < end_pos:
+        return genome_seqs[
+            contig_name
+        ][start_pos - 1: end_pos]
+
+    # Otherwise return the reverse complement
+    else:
+        return str(Seq(
+            genome_seqs[
+                contig_name
+            ][end_pos - 1: start_pos]
+        ).reverse_complement())
+
+# Add the nucleotide sequences to the table
+print("Assigning sequences for each alignment")
+df = df.assign(
+    aligned_sequence = df.apply(extract_aligned_sequence, axis=1)
+)
+print("Done")
+
+# Write out to a file
+fpo = "${uuid}.withSeq.csv.gz"
+print("Writing out to %s" % fpo)
+df.to_csv(fpo, index=None)
+print("Done")
+"""
+}
+
+
+// Format FASTA files with aligned sequences
+process formatFASTA {
+    container 'quay.io/fhcrc-microbiome/biopython-pandas:latest'
+    label 'io_limited'
+    errorStrategy "retry"
+    publishDir "${params.output_folder}", mode: "copy", overwrite: true
+
+    input:
+        file results_csv_gz
+    
+    output:
+        path "*.fasta.gz"
+    
+"""
+#!/usr/bin/env python3
+
+import gzip
+import pandas as pd
+
+# Read in all of the results for this dataset
+df = pd.read_csv("${results_csv_gz}")
+
+# For each gene, make a FASTA file
+for gene_name, gene_df in df.groupby("gene_name"):
+    with gzip.open("%s.alignments.fasta.gz" % gene_name, "wt") as fo:
+        fo.write("\\n".join([
+            ">%s::%s::%s::%s-%s\\n%s" % (
+                r["genome_id"], 
+                r["contig_name"],
+                r["genome_name"],
+                r["contig_start"],
+                r["contig_end"],
+                r["aligned_sequence"],
+            )
+            for _, r in gene_df.iterrows()
+        ]))
+"""
+}
+
+
 // Make a results summary PDF
 process summaryPDF {
     tag "Process final results"
     container "${container__plotting}"
     label 'io_limited'
     errorStrategy "retry"
+    publishDir "${params.output_folder}", mode: "copy", overwrite: true
 
     input:
         file results_csv_gz
