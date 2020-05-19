@@ -74,6 +74,7 @@ else:
             "mismatch",
             "pct_iden",
             "aligned_sequence",
+            "translated_sequence",
         ]
     ).to_csv(
         output_fp, 

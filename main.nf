@@ -536,10 +536,24 @@ def extract_aligned_sequence(r):
             ][end_pos - 1: start_pos]
         ).reverse_complement())
 
+# Define a function to translate the aligned region for a given row
+def translate_aligned_sequence(r):
+
+    return str(Seq(
+        r["aligned_sequence"]
+    ).translate(table=11))
+
 # Add the nucleotide sequences to the table
 print("Assigning sequences for each alignment")
 df = df.assign(
     aligned_sequence = df.apply(extract_aligned_sequence, axis=1)
+)
+print("Done")
+
+# Translate the aligned sequence
+print("Translating sequences for each alignment")
+df = df.assign(
+    translated_sequence = df.apply(translate_aligned_sequence, axis=1)
 )
 print("Done")
 
@@ -563,31 +577,67 @@ process formatFASTA {
         file results_csv_gz
     
     output:
-        path "*.fasta.gz"
+        path "*/*.gz"
     
 """
 #!/usr/bin/env python3
 
 import gzip
+import os
 import pandas as pd
 
 # Read in all of the results for this dataset
 df = pd.read_csv("${results_csv_gz}")
 
-# For each gene, make a FASTA file
-for gene_name, gene_df in df.groupby("gene_name"):
-    with gzip.open("%s.alignments.fasta.gz" % gene_name, "wt") as fo:
-        fo.write("\\n".join([
-            ">%s::%s::%s::%s-%s\\n%s" % (
-                r["genome_id"], 
-                r["contig_name"],
-                r["genome_name"],
-                r["contig_start"],
-                r["contig_end"],
-                r["aligned_sequence"],
-            )
-            for _, r in gene_df.iterrows()
-        ]))
+# For each operon structure, make a folder
+for operon_structure, operon_df in df.groupby("operon_context"):
+
+    # Format the folder name
+    operon_folder = operon_structure.replace(
+        "::", "_"
+    ).replace(
+        "(+)", "FWD"
+    ).replace(
+        "(-)", "REV"
+    ).replace(
+        " ", "_"
+    ).replace(
+        "__", "_"
+    ).replace(
+        "__", "_"
+    )
+
+    print("Writing out %d sequences for %s" % (operon_df.shape[0], operon_structure))
+    os.mkdir(operon_folder)
+
+    # For each gene, make a FASTA file with the nucleotide sequence
+    for gene_name, gene_df in df.groupby("gene_name"):
+        with gzip.open("%s/%s.alignments.fasta.gz" % (operon_folder, gene_name), "wt") as fo:
+            fo.write("\\n".join([
+                ">%s::%s::%s::%s-%s\\n%s" % (
+                    r["genome_id"], 
+                    r["contig_name"],
+                    r["genome_name"],
+                    r["contig_start"],
+                    r["contig_end"],
+                    r["aligned_sequence"],
+                )
+                for _, r in gene_df.iterrows()
+            ]))
+
+        # Also write out the translated sequence
+        with gzip.open("%s/%s.alignments.fastp.gz" % (operon_folder, gene_name), "wt") as fo:
+            fo.write("\\n".join([
+                ">%s::%s::%s::%s-%s\\n%s" % (
+                    r["genome_id"], 
+                    r["contig_name"],
+                    r["genome_name"],
+                    r["contig_start"],
+                    r["contig_end"],
+                    r["translated_sequence"],
+                )
+                for _, r in gene_df.iterrows()
+            ]))
 """
 }
 
