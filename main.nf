@@ -87,24 +87,35 @@ workflow {
             header: true
         )
     }.flatten(
-    ).map {
-        r -> [
-            r["GenBank FTP"].split("/")[-1].replaceAll(/"/, ""), // Unique genome ID
-            r["#Organism Name"],                                 // Readable name
-            r["GenBank FTP"]                                     // FTP folder containing the genome
-        ]
+    ).branch {
+        remote: it["uri"] == ""
+        local: true
     }.set {
         split_genome_ch
     }
 
     // Download the genomes from the NCBI FTP server
     fetchFTP(
-        split_genome_ch
+        split_genome_ch.remote.map {
+            r -> [
+                r["GenBank FTP"].split("/")[-1].replaceAll(/"/, ""), // Unique genome ID
+                r["#Organism Name"],                                 // Readable name
+                r["GenBank FTP"]                                     // FTP folder containing the genome
+            ]
+        }
     )
 
     // Align the operon against each genome
     runBLAST(
-        fetchFTP.out,
+        fetchFTP.out.mix(
+            split_genome_ch.local.map {
+                r -> [
+                    r["uri"].split("/")[-1],
+                    r["#Organism Name"],
+                    file(r["uri"])
+                ]
+            }
+        ),
         operon_fasta
     )
 
@@ -238,32 +249,32 @@ import re
 
 df = pd.read_csv("raw.manifest.csv")
 
-print("Subsetting to two columns")
+print("Subsetting to three columns")
 df = df.reindex(
     columns = [
         "GenBank FTP",
-        "#Organism Name"
+        "#Organism Name",
+        "uri"
     ]
 )
 
 # Remove rows where the "GenBank FTP" doesn't start with "ftp://"
 input_count = df.shape[0]
 df = df.loc[
-    df["GenBank FTP"].fillna(
+    (df["GenBank FTP"].fillna(
         ""
     ).apply(
         lambda n: str(n).startswith("ftp://")
+    )) | (
+        df["uri"].fillna("").apply(len) > 0
     )
 ]
-print("%d / %d rows have valid FTP paths" % (input_count, df.shape[0]))
+print("%d / %d rows have valid FTP or file paths" % (input_count, df.shape[0]))
 
 # Force organism names to be alphanumeric
 df = df.apply(
     lambda c: c.apply(lambda n: re.sub('[^0-9a-zA-Z .]+', '_', n)) if c.name == "#Organism Name" else c
 )
-
-# Now make sure that every URL is unique
-assert df["GenBank FTP"].unique().shape[0] == df.shape[0], df["GenBank FTP"].value_counts().head()
 
 df.to_csv("manifest.csv", index=None, sep=",")
 """
