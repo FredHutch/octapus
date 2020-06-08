@@ -25,4 +25,44 @@ jobs:
             -profile testing \
             -work-dir work/ \
             -with-docker ubuntu:20.04 \
+  join_results:
+    runs-on: ubuntu-latest
+    env:
+      NXF_ANSI_LOG: 0
+      NXF_VER: 20.01.0
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Nextflow
+        run: |
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name:  Run BOFFO batch 1
+        run: |
+          nextflow run main.nf \
+            --genomes test_data/genomes.csv \
+            --operon test_data/lac_operon.fasta \
+            --output_folder output_batch1 \
+            --output_prefix batch1 \
+            -profile testing \
+            -work-dir work/ \
+            -with-docker ubuntu:20.04
+      - name:  Run BOFFO batch 2
+        run: |
+          nextflow run main.nf \
+            --genomes test_data/genomes.2.csv \
+            --operon test_data/lac_operon.fasta \
+            --output_folder output_batch2 \
+            --output_prefix batch2 \
+            -profile testing \
+            -work-dir work/ \
+            -with-docker ubuntu:20.04
+      - name:  Join Batches
+        run: |
+          nextflow run join_results.nf \
+            --csv_list output_batch1/batch1.csv.gz,output_batch2/batch2.csv.gz \
+            --output_folder output_combined \
+            --output_prefix combined \
+            -profile testing \
+            -work-dir work/ \
+            -with-docker ubuntu:20.04
 
