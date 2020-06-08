@@ -74,14 +74,20 @@ process joinCSVs {
     output:
         path "${params.output_prefix}.joined.csv.gz"
     
-"""
-#!/usr/bin/env python3
+"""#!/usr/bin/env python3
 
 import pandas as pd
+import os
+
+csv_list = "${csv_list}".split(" ")
+
+for fp in csv_list:
+    print("Checking for input: %s" % fp)
+    assert os.path.exists(fp)
 
 df = pd.concat([
     pd.read_csv(fp)
-    for fp in "${csv_list}".split(" ")
+    for fp in csv_list
 ])
 
 
