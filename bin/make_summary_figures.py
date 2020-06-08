@@ -51,6 +51,10 @@ def calc_indiv_operon(operon_df):
         axis=1
     ).drop(columns="strand")
 
+    # Make sure that all of the genes are present on the contig
+    for gene_name in gene_order["gene_name"].values:
+        assert gene_name in contig_df.columns.values, (gene_order, contig_df)
+
     df = pd.DataFrame([
         {
             "gene_name": r["gene_name"],
