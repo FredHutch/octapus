@@ -47,7 +47,7 @@ workflow {
 
     // Join together the CSV files
     joinCSVs(
-        Channel.fromList(
+        Channel.of(
             params.csv_list.split(",")
         ).map {
             r -> file(r)
