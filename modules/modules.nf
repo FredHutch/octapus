@@ -1,5 +1,6 @@
 // Docker containers reused across processes
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
+container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
 
 
 // Parse each individual alignment file
@@ -141,5 +142,28 @@ else:
     df.to_csv(output_fp, index=None, compression="gzip")
 
 print("Done")
+"""
+}
+
+// Make a results summary PDF
+process summaryPDF {
+    tag "Process final results"
+    container "${container__plotting}"
+    label 'io_limited'
+    errorStrategy "retry"
+    publishDir "${params.output_folder}", mode: "copy", overwrite: true
+
+    input:
+        file results_csv_gz
+    
+    output:
+        file "${params.output_prefix}.pdf"
+    
+"""
+#!/bin/bash
+
+set -e
+
+make_summary_figures.py "${results_csv_gz}" "${params.output_prefix}.pdf"
 """
 }

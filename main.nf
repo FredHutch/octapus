@@ -19,6 +19,7 @@ include {
     collectResults as collectResultsRound1;
     collectResults as collectResultsRound2;
     collectFinalResults;
+    summaryPDF;
 } from './modules/modules' params(
     output_prefix: params.output_prefix,
     output_folder: params.output_folder,
@@ -638,29 +639,5 @@ for operon_structure, operon_df in df.groupby("operon_context"):
                 )
                 for _, r in gene_df.iterrows()
             ]))
-"""
-}
-
-
-// Make a results summary PDF
-process summaryPDF {
-    tag "Process final results"
-    container "${container__plotting}"
-    label 'io_limited'
-    errorStrategy "retry"
-    publishDir "${params.output_folder}", mode: "copy", overwrite: true
-
-    input:
-        file results_csv_gz
-    
-    output:
-        file "${params.output_prefix}.pdf"
-    
-"""
-#!/bin/bash
-
-set -e
-
-make_summary_figures.py "${results_csv_gz}" "${params.output_prefix}.pdf"
 """
 }
