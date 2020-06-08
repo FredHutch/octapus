@@ -47,7 +47,7 @@ workflow {
 
     // Join together the CSV files
     joinCSVs(
-        Channel.fromPath(params.csv_list)
+        Channel.fromPath(params.csv_list).toSortedList()
     )
 
     // Make the summary PDF
