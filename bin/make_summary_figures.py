@@ -53,8 +53,10 @@ def calc_indiv_operon(operon_df):
 
     # Make sure that all of the genes are present on the contig
     for gene_name in gene_order["gene_name"].values:
-        assert gene_name in contig_df["contig_left"].columns.values, (gene_name, gene_order, contig_df)
-        assert gene_name in contig_df["contig_right"].columns.values, (gene_name, gene_order, contig_df)
+        if gene_name not in contig_df["contig_left"].columns.values:
+            return
+        if gene_name not in contig_df["contig_right"].columns.values:
+            return
 
     df = pd.DataFrame([
         {
