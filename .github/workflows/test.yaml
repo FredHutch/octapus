@@ -25,6 +25,27 @@ jobs:
             -profile testing \
             -work-dir work/ \
             -with-docker ubuntu:20.04 \
+  test2:
+    runs-on: ubuntu-latest
+    env:
+      NXF_ANSI_LOG: 0
+      NXF_VER: 20.04.1
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Nextflow
+        run: |
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name:  Run BOFFO
+        run: |
+          nextflow run main.nf \
+            --genomes test_data/SamyAB.genomes.csv \
+            --operon test_data/SamyAB.fasta \
+            --output_folder SamyAB_output \
+            --output_prefix SamyAB \
+            -profile testing \
+            -work-dir work/ \
+            -with-docker ubuntu:20.04 \
   join_results:
     runs-on: ubuntu-latest
     env:
