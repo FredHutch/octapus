@@ -317,15 +317,8 @@ def genome_context(df):
         for _, i in df.iterrows()
     ][::-1])
 
-    # For each gene, use the appropriate list
-    for ix, r in df.iterrows():
-        if r["strand"] == '+':
-            output.append(fwd_str)
-        # For genes on the - strand, switch the strand reported for the other genes as well as the order
-        else:
-            output.append(rev_str)
-
-    return pd.Series(output, index=df.index)
+    # Use the lexographically lower string
+    return min(fwd_str, rev_str)
 
 # Function to figure out the "operon_context" for each gene
 def operon_context(df, maximum_gap):
@@ -368,11 +361,9 @@ def operon_context(df, maximum_gap):
             for _, i in df.reindex(index=operon).iterrows()
         ][::-1])
 
+        # Assign the lexographically lower value for the operon structure string
         for ix in operon:
-            if df.loc[ix, "strand"] == "+":
-                output.append(fwd_str)
-            else:
-                output.append(rev_str)
+            output.append(min(fwd_str, rev_str))
             
     return pd.Series(output, index=df.index)
 
