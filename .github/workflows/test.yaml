@@ -43,6 +43,8 @@ jobs:
             --operon test_data/SamyAB.fasta \
             --output_folder SamyAB_output \
             --output_prefix SamyAB \
+            --min_identity 25 \
+            --min_coverage 25 \
             -profile testing \
             -work-dir work/ \
             -with-docker ubuntu:20.04 \
