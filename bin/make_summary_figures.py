@@ -197,19 +197,27 @@ def plot_all_operons(
         ascending=True
     )
 
-    genome_counts.plot(kind="barh")
-    plt.xlabel("Number of genomes")
-    plt.ylabel("")
-    if pdf is not None:
-        pdf.savefig(bbox_inches="tight")
-    plt.show()
+    # Make a copy of the genome counts that excludes single-gene operons 
+    genome_counts_no_singletons = genome_counts.reindex(
+        index = [
+            operon_name
+            for operon_name in genome_counts.index.values
+            if " :: " in operon_name
+        ]
+    )
 
-    genome_counts.apply(np.log10).plot(kind="barh")
-    plt.xlabel("Number of genomes (log10)")
-    plt.ylabel("")
-    if pdf is not None:
-        pdf.savefig(bbox_inches="tight")
-    plt.show()
+    for vc in [genome_counts, genome_counts_no_singletons]:
+
+        for log_scale in [False, True]:
+
+            vc.plot(kind="barh")
+            plt.xlabel("Number of genomes")
+            plt.ylabel("")
+            if log_scale:
+                plt.xscale("log")
+            if pdf is not None:
+                pdf.savefig(bbox_inches="tight")
+            plt.close()
 
     # Assign a color for each gene
     cmap = dict(zip(
