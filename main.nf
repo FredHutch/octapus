@@ -106,17 +106,20 @@ workflow {
         }
     )
 
+    // Make a new channel joining the FTP files with local files
+    joined_fasta_ch = fetchFTP.out.mix(
+        split_genome_ch.local.map {
+            r -> [
+                r["uri"].split("/")[-1],
+                r["#Organism Name"],
+                file(r["uri"])
+            ]
+        }
+    )
+
     // Align the operon against each genome
     runBLAST(
-        fetchFTP.out.mix(
-            split_genome_ch.local.map {
-                r -> [
-                    r["uri"].split("/")[-1],
-                    r["#Organism Name"],
-                    file(r["uri"])
-                ]
-            }
-        ),
+        joined_fasta_ch,
         operon_fasta
     )
 
@@ -128,7 +131,7 @@ workflow {
     // Join the parsed alignments with the FASTA for each genome
     // For each alignment, extract the sequence of the aligned region
     extractAlignments(
-        fetchFTP.out.join(
+        joined_fasta_ch.join(
             parseAlignments.out.map {
                 r -> [r.name.replaceAll(/.csv.gz/, ""), r]
             }
