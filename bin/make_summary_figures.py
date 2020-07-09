@@ -208,16 +208,18 @@ def plot_all_operons(
 
     for vc in [genome_counts, genome_counts_no_singletons]:
 
-        for log_scale in [False, True]:
+        if vc.shape[0] > 0:
 
-            vc.plot(kind="barh")
-            plt.xlabel("Number of genomes")
-            plt.ylabel("")
-            if log_scale:
-                plt.xscale("log")
-            if pdf is not None:
-                pdf.savefig(bbox_inches="tight")
-            plt.close()
+            for log_scale in [False, True]:
+
+                vc.plot(kind="barh")
+                plt.xlabel("Number of genomes")
+                plt.ylabel("")
+                if log_scale:
+                    plt.xscale("log")
+                if pdf is not None:
+                    pdf.savefig(bbox_inches="tight")
+                plt.close()
 
     # Assign a color for each gene
     cmap = dict(zip(
@@ -228,13 +230,14 @@ def plot_all_operons(
         )
     ))
 
-    for operon_name in genome_counts.index.values[::-1]:
-        plot_single_operon(
-            operon_name,
-            all_operon_df.query("operon_context == '{}'".format(operon_name)),
-            cmap,
-            pdf=pdf
-        )
+    if genome_counts.shape[0] > 0:
+        for operon_name in genome_counts.index.values[::-1]:
+            plot_single_operon(
+                operon_name,
+                all_operon_df.query("operon_context == '{}'".format(operon_name)),
+                cmap,
+                pdf=pdf
+            )
 
 
 if __name__ == "__main__":
