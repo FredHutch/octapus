@@ -13,6 +13,7 @@ params.min_identity = 90
 params.min_coverage = 50
 params.max_operon_gap = 10000
 params.batchsize = 100
+params.max_evalue = 0.001
 
 // Import modules
 include {
@@ -48,6 +49,7 @@ def helpMessage() {
       --min_coverage        Percent coverage threshold used for alignment (default: 50)
       --max_operon_gap      Maximum gap between genes in the same 'operon' (only used for the 'operon_context' output column) (default: 10000)
       --batchsize           Number of samples to join in each batch (default: 100)
+      --max_evalue          Maximum E-value threshold used to filter initial alignments (default: 0.001)
 
     """.stripIndent()
 }
@@ -222,7 +224,7 @@ tblastn \
     -subject <(gunzip -c ${fasta_gz}) \
     -out ${uuid}.aln \
     -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend qlen sstart send slen" \
-    -evalue 0.001
+    -evalue ${params.max_evalue}
 
 echo "Compressing alignment file"
 
