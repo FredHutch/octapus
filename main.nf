@@ -9,6 +9,7 @@ params.output_folder = false
 params.output_prefix = false
 params.genomes = false
 params.operon = false
+params.operon_list = false
 params.min_identity = 90
 params.min_coverage = 50
 params.max_operon_gap = 10000
@@ -41,6 +42,7 @@ def helpMessage() {
     Required Arguments:
       --genomes             CSV file listing genomes (from https://www.ncbi.nlm.nih.gov/genome/browse)
       --operon              Amino acid sequences to search for, in multi-FASTA format
+      --operon_list         Flag to input multiple sequences per gene -- see description below
       --output_folder       Folder to write output files to
       --output_prefix       Prefix to use for output file names
 
@@ -51,32 +53,68 @@ def helpMessage() {
       --batchsize           Number of samples to join in each batch (default: 100)
       --max_evalue          Maximum E-value threshold used to filter initial alignments (default: 0.001)
 
+    Operon List Input:
+
+    Instead of providing a single representative sequence per gene, the --operon_list flag
+    can be used to point to a comma-delimited list of FASTA files, each containing multiple
+    sequences from the gene of interest. If this flag is selected, then the conserved positions
+    within each gene are first identified using PSI-blast to create a position-specific
+    scoring matrix (PSSM), and then that PSSM is used to query the input genomes. The format
+    used to link gene names to multi-FASTA files is as follows:
+
+        --operon_list lacZ=test_data/lacZ.fasta,lacY=test_data/lacY.fasta,lacA=test_data/lacA.fasta
+
+        In the example above, the name of each gene is linked to a multi-FASTA with '=', and
+        multiple genes are delimited with ','
+
+    When this type of analysis is performed, the --operon flag cannot be used, and additional
+    outputs will be generated including the PSSM generated for each gene.
+
     """.stripIndent()
 }
 
 workflow {
 
     // Show help message if the user specifies the --help flag at runtime
-    if (params.help || !params.genomes || !params.output_folder || !params.output_prefix || !params.operon){
+    if (params.help || !params.genomes || !params.output_folder || !params.output_prefix){
         // Invoke the function above which prints the help message
         helpMessage()
         // Exit out and do not run anything else
         exit 0
     }
 
-    // Point to the operon file
-    operon_fasta = file(params.operon)
+    // The user must specify _either_ --operon or --operon_list
+    if (!params.operon_list && !params.operon){
+        log.info"""
+
+        Please specify either --operon or --operon_list.
+
+        Use the --help flag for more usage information.
+        
+        """.stripIndent()
+
+        // Exit out and do not run anything else
+        exit 0
+    }
+
+    // The user must specify _either_ --operon or --operon_list, but not both
+    if (params.operon_list && params.operon){
+        log.info"""
+
+        Please specify either --operon or --operon_list, but not both.
+
+        Use the --help flag for more usage information.
+
+        """.stripIndent()
+
+        // Exit out and do not run anything else
+        exit 0
+    }
 
     // Make sure that the input files exist
     if (file(params.genomes).isEmpty()){
         log.info"""
         The specified --genomes file cannot be found!
-        """.stripIndent()
-        exit 1
-    }
-    if (operon_fasta.isEmpty()){
-        log.info"""
-        The specified --operon file cannot be found!
         """.stripIndent()
         exit 1
     }
@@ -119,17 +157,59 @@ workflow {
         }
     )
 
-    // Align the operon against each genome
-    runBLAST(
-        joined_fasta_ch,
-        operon_fasta
-    )
+    // Each gene in the operon is represented by a single sequence in a
+    // multi-FASTA which contains all of the genes in the operon
+    if (params.operon){
 
-    // Parse each individual alignment
-    parseAlignments(
-        runBLAST.out
-    )
+        // Point to the operon file
+        operon_fasta = file(params.operon)    // Align the operon against each genome
 
+        // Make sure the file is not empty
+        if (operon_fasta.isEmpty()){
+            log.info"""
+            The specified --operon file cannot be found!
+            """.stripIndent()
+            exit 1
+        }
+
+        // Simply run BLAST on each of the genomes
+        runBLAST(
+            joined_fasta_ch,
+            operon_fasta
+        )
+
+        // Parse each individual alignment
+        parseAlignments(
+            runBLAST.out
+        )
+
+    }else{
+
+        // Instead, each gene is specified as its own multi-FASTA
+        makePSSM(
+            Channel.from(
+                params.operon_list.split(",")
+            ).flatten(
+            ).map {
+                r -> [
+                    r.split("=")[0], file(r.split("=")[1])
+                ]
+            }
+        )
+
+        // Run PSIBLAST for each gene against this genome
+        runPSIBLAST(
+            joined_fasta_ch,
+            makePSSM.out[0].toSortedList()
+        )
+
+        // Parse each individual alignment
+        parseAlignments(
+            runPSIBLAST.out
+        )
+
+    }
+    
     // Join the parsed alignments with the FASTA for each genome
     // For each alignment, extract the sequence of the aligned region
     extractAlignments(
@@ -234,6 +314,100 @@ echo Done
 """
 }
 
+// Make a PSSM for each gene in the list of queries
+process makePSSM {
+    tag "Identify conserved positions"
+    container 'quay.io/fhcrc-microbiome/blast@sha256:1db09d0917e52913ed711fcc5eb281c06d0bb632ec8cd5a03610e2c3377e1753'
+    label 'io_limited'
+    errorStrategy "retry"
+
+    input:
+        tuple val(gene_name), path(fasta)
+    
+    output:
+        file "${gene_name}.pssm"
+        file "${gene_name}.internal.aln"
+    
+"""
+#!/bin/bash
+set -e
+
+echo "Building PSSM for ${gene_name}"
+
+# First, extract the first gene in the list
+cat ${fasta} \
+| tr '\n' '\t' \
+| tr '>' '\n' \
+| head -2 \
+| tail -n 1 \
+| sed 's/^/>/' \
+| tr '\t' '\n' \
+| sed 's/>.*/>${gene_name}/' \
+> first_sequence.fasta
+
+# Second, extract everything after the first gene in the list
+cat ${fasta} \
+| tr '\n' '\t' \
+| tr '>' '\n' \
+| awk 'NR > 2' \
+| sed 's/^/>/' \
+| tr '\t' '\n' \
+> other_sequences.fasta
+
+# Third, run PSIBLAST to generate the PSSM
+psiblast \
+    -subject first_sequence.fasta \
+    -query other_sequences.fasta \
+    -out_pssm ${gene_name}.pssm \
+    -save_pssm_after_last_round \
+    -out ${gene_name}.internal.aln
+
+echo Done
+"""
+}
+
+// Align the PSSM for each gene in the operon against each individual genome
+process runPSIBLAST {
+    tag "Align PSSM for operon"
+    container 'quay.io/fhcrc-microbiome/blast@sha256:1db09d0917e52913ed711fcc5eb281c06d0bb632ec8cd5a03610e2c3377e1753'
+    label 'io_limited'
+    // errorStrategy "retry"
+
+    input:
+        tuple val(uuid), val(genome_name), path(fasta_gz)
+        file pssm_list
+    
+    output:
+        tuple val(uuid), val(genome_name), file("${uuid}.aln.gz")
+    
+"""
+#!/bin/bash
+set -e
+
+echo "Running alignment for ${uuid}"
+
+ls -lahtr
+
+for PSSM in *pssm; do
+
+    echo "Processing \$PSSM"
+
+    tblastn \
+        -in_pssm \$PSSM \
+        -subject <(gunzip -c ${fasta_gz}) \
+        -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend qlen sstart send slen" \
+        -evalue ${params.max_evalue} \
+        >> ${uuid}.aln
+
+done
+
+echo "Compressing alignment file"
+
+gzip ${uuid}.aln
+
+echo Done
+"""
+}
 
 // Parse the manifest and sanitize the fields
 process sanitize_manifest {

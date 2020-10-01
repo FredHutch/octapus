@@ -25,6 +25,27 @@ jobs:
             -profile testing \
             -work-dir work/ \
             -with-docker ubuntu:20.04 \
+  test_PSIblast:
+    runs-on: ubuntu-latest
+    env:
+      NXF_ANSI_LOG: 0
+      NXF_VER: 20.04.1
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install Nextflow
+        run: |
+          wget -qO- get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+      - name:  Run BOFFO
+        run: |
+          nextflow run main.nf \
+            --genomes test_data/genomes.csv \
+            --operon_list lacZ=test_data/lacZ.fasta,lacY=test_data/lacY.fasta,lacA=test_data/lacA.fasta \
+            --output_folder output \
+            --output_prefix test_psiblast \
+            -profile testing \
+            -work-dir work/ \
+            -with-docker ubuntu:20.04 \
   test2:
     runs-on: ubuntu-latest
     env:
