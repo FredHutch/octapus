@@ -371,7 +371,7 @@ process runPSIBLAST {
     tag "Align PSSM for operon"
     container 'quay.io/fhcrc-microbiome/blast@sha256:1db09d0917e52913ed711fcc5eb281c06d0bb632ec8cd5a03610e2c3377e1753'
     label 'io_limited'
-    // errorStrategy "retry"
+    errorStrategy "retry"
 
     input:
         tuple val(uuid), val(genome_name), path(fasta_gz)
