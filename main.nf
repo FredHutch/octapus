@@ -356,8 +356,8 @@ cat ${fasta} \
 
 # Third, run PSIBLAST to generate the PSSM
 psiblast \
-    -subject first_sequence.fasta \
-    -query other_sequences.fasta \
+    -query first_sequence.fasta \
+    -subject other_sequences.fasta \
     -out_pssm ${gene_name}.pssm \
     -save_pssm_after_last_round \
     -out ${gene_name}.internal.aln
