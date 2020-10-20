@@ -14,6 +14,7 @@ params.min_identity = 90
 params.min_coverage = 50
 params.max_operon_gap = 10000
 params.batchsize = 100
+params.ftp_threads = 100
 params.max_evalue = 0.001
 
 // Import modules
@@ -255,6 +256,7 @@ process fetchFTP {
     container 'quay.io/fhcrc-microbiome/wget@sha256:98b90e8bb8a171182505f1e255b0bd85cbbda68f08c08b4877c3fc48e63ac82f'
     label 'io_limited'
     errorStrategy "retry"
+    maxForks params.ftp_threads
 
     input:
         tuple val(uuid), val(genome_name), val(ftp_prefix)
