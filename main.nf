@@ -322,6 +322,7 @@ process makePSSM {
     container 'quay.io/fhcrc-microbiome/blast@sha256:1db09d0917e52913ed711fcc5eb281c06d0bb632ec8cd5a03610e2c3377e1753'
     label 'io_limited'
     errorStrategy "retry"
+    publishDir "${params.output_folder}", mode: "copy", overwrite: true
 
     input:
         tuple val(gene_name), path(fasta)
