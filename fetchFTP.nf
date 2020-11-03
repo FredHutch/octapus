@@ -193,7 +193,7 @@ output_folder = "${params.output_folder}"
 def format_uri(r):
 
     # Check if the 'uri' is missing
-    if r["uri"] is None or len(r["uri"]) == 0:
+    if r["uri"] is None or isinstance(r["uri"], float) or len(r["uri"]) == 0:
 
         # Get the UUID inferred from the GenBank FTP path
         genome_uuid = r["GenBank FTP"].split("/")[-1].replace('"', '')
