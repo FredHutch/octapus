@@ -251,8 +251,8 @@ workflow {
     // If the --annotations flag is set
     if (params.annotations){
 
-        // Make a channel with all of the operons identified in this analysis
-        operon_ch = collectFinalResults.out.map {
+        // Make a channel with the genomes containing all of the operons identified in this analysis
+        genome_ch = collectFinalResults.out.map {
             r -> r.splitCsv(
                 header: true
             )
@@ -265,8 +265,13 @@ workflow {
         ).join( // Add the genomes
             joined_fasta_ch
         )
+
+        // Annotate these genomes with prokka
+        prokka(
+            genome_ch
+        )
         
-        operon_ch.view()
+        prokka.out.view()
 
     }
 

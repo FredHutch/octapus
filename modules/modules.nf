@@ -167,3 +167,36 @@ set -e
 make_summary_figures.py "${results_csv_gz}" "${params.output_prefix}.pdf"
 """
 }
+
+// Annotate a genome with Prokka
+process prokka {
+    container "quay.io/biocontainers/prokka:1.14.6--pl526_0"
+    label "mem_medium"
+    errorStrategy 'retry'
+
+    input:
+    tuple val(genome_id), val(genome_name), file(fasta)
+
+    output:
+    path "${genome_id}/${genome_id}.gbk.gz"
+
+"""#!/bin/bash
+
+set -euxo pipefail
+
+echo Running Prokka
+
+prokka \
+    --outdir "${genome_id}" \
+    --prefix "${genome_id}" \
+    --cpus ${task.cpus} \
+    "${fasta}"
+
+echo Compressing outputs
+
+gzip "${genome_id}"/*
+
+echo Done
+"""
+
+}
