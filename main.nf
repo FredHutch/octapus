@@ -913,7 +913,7 @@ process clinker {
     publishDir "${params.output_folder}/html/", mode: 'copy', overwrite: true
 
     input:
-        tuple val(operon_context), file("input.*.gbk")
+        tuple val(operon_context), file(input_gbk_files)
     
     output:
         path "*html"
