@@ -16,6 +16,8 @@ params.max_operon_gap = 10000
 params.batchsize = 100
 params.ftp_threads = 100
 params.max_evalue = 0.001
+params.annotations = false
+params.annotation_window = 10000
 
 // Import modules
 include {
@@ -53,6 +55,8 @@ def helpMessage() {
       --max_operon_gap      Maximum gap between genes in the same 'operon' (only used for the 'operon_context' output column) (default: 10000)
       --batchsize           Number of samples to join in each batch (default: 100)
       --max_evalue          Maximum E-value threshold used to filter initial alignments (default: 0.001)
+      --annotations         If specified, annotate the regions of all genomes which contain operons
+      --annotation_window   The additional area on either side of the operon to annotate (in bp) (default: 10000)
 
     Operon List Input:
 
@@ -243,6 +247,20 @@ workflow {
     summaryPDF(
         collectFinalResults.out
     )
+
+    // If the --annotations flag is set
+    if (params.annotations){
+
+        // Get the list of genomes which contain operons
+        collectFinalResults.out.map {
+            r -> r.splitCsv(
+                header: true
+            )
+        }.flatten(
+        ).view(
+        )
+
+    }
 
 }
 
