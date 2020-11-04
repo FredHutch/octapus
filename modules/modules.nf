@@ -57,6 +57,7 @@ else:
         columns = [
             "operon_context",
             "operon_size",
+            "operon_ix",
             "genome_context",
             "genome_id",
             "genome_name",
