@@ -78,6 +78,19 @@ def helpMessage() {
     When this type of analysis is performed, the --operon flag cannot be used, and additional
     outputs will be generated including the PSSM generated for each gene.
 
+    Annotations:
+
+    Note that including the --annotations flag will result in a larger amount of compute being
+    executed, including the annotation of input genomes using Prokka and the comparison of those 
+    genomes using clinker to form an interactive visualization (saved in the html/ output folder).
+
+    Citations:
+
+    Seemann T. Prokka: rapid prokaryotic genome annotation
+    Bioinformatics 2014 Jul 15;30(14):2068-9. PMID:24642063
+
+    Gilchrist, C.L.M, 2020. clinker: Easy gene cluster comparison figure generator.
+
     """.stripIndent()
 }
 

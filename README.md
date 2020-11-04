@@ -40,10 +40,47 @@ nextflow run FredHutch/BOFFO <ARGUMENTS>
 Required Arguments:
   --genomes             CSV file listing genomes (from https://www.ncbi.nlm.nih.gov/genome/browse)
   --operon              Amino acid sequences to search for, in multi-FASTA format
+  --operon_list         Flag to input multiple sequences per gene -- see description below
   --output_folder       Folder to write output files to
   --output_prefix       Prefix to use for output file names
 
 Optional Arguments:
   --min_identity        Percent identity threshold used for alignment (default: 90)
   --min_coverage        Percent coverage threshold used for alignment (default: 50)
+  --max_operon_gap      Maximum gap between genes in the same 'operon' (only used for the 'operon_context' output column) (default: 10000)
+  --batchsize           Number of samples to join in each batch (default: 100)
+  --max_evalue          Maximum E-value threshold used to filter initial alignments (default: 0.001)
+  --annotations         If specified, annotate the regions of all genomes which contain operons
+  --annotation_window   The additional area on either side of the operon to annotate (in bp) (default: 10000)
+
+Operon List Input:
+
+Instead of providing a single representative sequence per gene, the --operon_list flag
+can be used to point to a comma-delimited list of FASTA files, each containing multiple
+sequences from the gene of interest. If this flag is selected, then the conserved positions
+within each gene are first identified using PSI-blast to create a position-specific
+scoring matrix (PSSM), and then that PSSM is used to query the input genomes. The format
+used to link gene names to multi-FASTA files is as follows:
+
+    --operon_list lacZ=test_data/lacZ.fasta,lacY=test_data/lacY.fasta,lacA=test_data/lacA.fasta
+
+    In the example above, the name of each gene is linked to a multi-FASTA with '=', and
+    multiple genes are delimited with ','
+
+When this type of analysis is performed, the --operon flag cannot be used, and additional
+outputs will be generated including the PSSM generated for each gene.
+
+Annotations:
+
+Note that including the --annotations flag will result in a larger amount of compute being
+executed, including the annotation of input genomes using Prokka and the comparison of those 
+genomes using clinker to form an interactive visualization (saved in the html/ output folder).
+
+Citations:
+
+Seemann T. Prokka: rapid prokaryotic genome annotation
+Bioinformatics 2014 Jul 15;30(14):2068-9. PMID:24642063
+
+Gilchrist, C.L.M, 2020. clinker: Easy gene cluster comparison figure generator.
+
 ```
