@@ -25,6 +25,7 @@ include {
     collectResults as collectResultsRound2;
     collectFinalResults;
     summaryPDF;
+    prokka;
 } from './modules/modules' params(
     output_prefix: params.output_prefix,
     output_folder: params.output_folder,
