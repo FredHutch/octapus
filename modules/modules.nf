@@ -178,7 +178,7 @@ process prokka {
     tuple val(genome_id), val(genome_name), file(fasta)
 
     output:
-    path "OUTPUT/${genome_id}.gbk.gz"
+    tuple val(genome_id), val(genome_name), file("OUTPUT/${genome_id}.gbk.gz")
 
 """#!/bin/bash
 
