@@ -874,7 +874,7 @@ for operon_structure, operon_df in df.groupby("operon_context"):
 process extractGBK {
     container "${container__biopython}"
     label 'io_limited'
-    errorStrategy "retry"
+    errorStrategy "terminate"
     publishDir "${params.output_folder}/gbk/${operon_context}/", mode: 'copy', overwrite: true
 
     input:
