@@ -920,7 +920,8 @@ process clinker {
 
 """#!/bin/bash
 
-OUTPUT="${operon_context.replaceAll(/ :: /, '_').replaceAll(/ (\+)/, '_FWD').replaceAll(/ (-)/, '_REV')}"
+OUTPUT=\$(echo "${operon_context.replaceAll(/ :: /, '_')}" | sed 's/ (\+)/_FWD/g' | sed 's/ (-)/_REV/g')
+echo \$OUTPUT
 
 ls -lahtr
 
