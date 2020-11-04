@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+from Bio import SeqIO
+import pandas as pd
+
 # Capture input variables populated by the Nextflow controller
 genome_id = '${genome_id}'
 operon_context = '${operon_context}'
