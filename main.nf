@@ -251,14 +251,27 @@ workflow {
     // If the --annotations flag is set
     if (params.annotations){
 
-        // Get the list of genomes which contain operons
-        collectFinalResults.out.map {
+        // Make a channel with all of the operons identified in this analysis
+        operon_ch = collectFinalResults.out.map {
             r -> r.splitCsv(
                 header: true
             )
         }.flatten(
-        ).view(
+        ).map {
+            r -> [
+                r["genome_id"], 
+                r["genome_name"],
+                r["operon_context"],
+                r["contig_name"],
+                r["contig_start"],
+                r["contig_end"],
+                r["strand"],
+            ]
+        }.unique(
         )
+        
+        operon_ch.view()
+        // joined_fasta_ch
 
     }
 
