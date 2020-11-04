@@ -178,7 +178,7 @@ process prokka {
     tuple val(genome_id), val(genome_name), file(fasta)
 
     output:
-    path "${genome_id}/${genome_id}.gbk.gz"
+    path "OUTPUT/${genome_id}.gbk.gz"
 
 """#!/bin/bash
 
@@ -187,14 +187,14 @@ set -euxo pipefail
 echo Running Prokka
 
 prokka \
-    --outdir "${genome_id}" \
+    --outdir OUTPUT \
     --prefix "${genome_id}" \
     --cpus ${task.cpus} \
     "${fasta}"
 
 echo Compressing outputs
 
-gzip "${genome_id}"/*
+gzip OUTPUT/*
 
 echo Done
 """
