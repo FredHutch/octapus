@@ -35,6 +35,7 @@ include {
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
 container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
+container__clinker = "quay.io/fhcrc-microbiome/clinker:latest"
 
 
 // Function which prints help message text
@@ -295,6 +296,11 @@ workflow {
         extractGBK(
             annotation_ch,
             collectFinalResults.out
+        )
+
+        // Make a clinker webpage for each operon context
+        clinker(
+            extractGBK.out.groupTuple()
         )
         
     }
@@ -883,7 +889,7 @@ for operon_structure, operon_df in df.groupby("operon_context"):
 process extractGBK {
     container "${container__biopython}"
     label 'io_limited'
-    errorStrategy "terminate"
+    errorStrategy "retry"
     publishDir params.output_folder, mode: 'copy', overwrite: true
 
     input:
@@ -891,10 +897,32 @@ process extractGBK {
         file summary_csv
     
     output:
-        path "*/gbk/*gbk"
+        tuple val(operon_context), path("*/gbk/*gbk")
 
     script:
         template 'extractGBK.py'
+
+
+}
+
+// Make an interactive visual display for each operon context
+process clinker {
+    container "${container__clinker}"
+    label 'mem_medium'
+    errorStrategy "terminate"
+    publishDir "${params.output_folder}/html/", mode: 'copy', overwrite: true
+
+    input:
+        tuple val(operon_context), file("input.*.gbk")
+    
+    output:
+        path "*html"
+
+"""#!/bin/bash
+
+clinker *gbk --webpage "${operon_context}.html"
+
+"""
 
 
 }
