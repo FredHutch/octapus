@@ -257,21 +257,16 @@ workflow {
                 header: true
             )
         }.flatten(
-        ).map {
+        ).map { // Just keep the genome ID across all hits
             r -> [
-                r["genome_id"], 
-                r["genome_name"],
-                r["operon_context"],
-                r["contig_name"],
-                r["contig_start"],
-                r["contig_end"],
-                r["strand"],
+                r["genome_id"],
             ]
-        }.unique(
+        }.unique( // Drop duplicate entries
+        ).join( // Add the genomes
+            joined_fasta_ch
         )
         
         operon_ch.view()
-        // joined_fasta_ch
 
     }
 
