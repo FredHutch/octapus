@@ -170,7 +170,7 @@ make_summary_figures.py "${results_csv_gz}" "${params.output_prefix}.pdf"
 
 // Annotate a genome with Prokka
 process prokka {
-    container "quay.io/biocontainers/prokka:1.14.6--pl526_0"
+    container "staphb/prokka:latest"
     label "mem_medium"
     errorStrategy 'retry'
 
