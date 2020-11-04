@@ -920,7 +920,7 @@ process clinker {
 
 """#!/bin/bash
 
-OUTPUT="${operon_context.replaceAll(/ :: /, '_').replaceAll(/ (+)/, '_FWD').replaceAll(/ (-)/, '_REV')}"
+OUTPUT="${operon_context.replaceAll(/ :: /, '_').replaceAll(/ (\+)/, '_FWD').replaceAll(/ (-)/, '_REV')}"
 
 ls -lahtr
 
