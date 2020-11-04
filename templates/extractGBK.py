@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 from Bio import SeqIO
-import pandas as pd
 import gzip
+import os
+import pandas as pd
 
 print("Processing ${genome_id} -- ${genome_name}")
 print("Contig: ${contig_name}")
@@ -54,9 +55,29 @@ recs = [
 ]
 print("Read in %d records" % len(recs))
 
+# Format the folder name
+operon_folder = "${operon_context}".replace(
+    "::", "_"
+).replace(
+    "(+)", "FWD"
+).replace(
+    "(-)", "REV"
+).replace(
+    " ", "_"
+).replace(
+    "__", "_"
+).replace(
+    "__", "_"
+)
+os.mkdir(operon_folder)
+os.mkdir(os.path.join(operon_folder, "gbk"))
 
 # Define the output file name
-output_fp = "${genome_id}-${contig_name}-${operon_ix}.gbk"
+output_fp = os.path.join(
+    operon_folder,
+    "gbk",
+    "${genome_id}-${contig_name}-${operon_ix}.gbk"
+)
 print("Writing out to %s" % output_fp)
 with open(output_fp, "wt") as handle:
     SeqIO.write(

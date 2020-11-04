@@ -383,8 +383,8 @@ process makePSSM {
         tuple val(gene_name), path(fasta)
     
     output:
-        file "${gene_name}.pssm"
-        file "${gene_name}.internal.aln"
+        file "pssm/${gene_name}.pssm"
+        file "pssm/${gene_name}.internal.aln"
     
 """
 #!/bin/bash
@@ -413,12 +413,13 @@ cat ${fasta} \
 > other_sequences.fasta
 
 # Third, run PSIBLAST to generate the PSSM
+mkdir pssm
 psiblast \
     -query first_sequence.fasta \
     -subject other_sequences.fasta \
-    -out_pssm ${gene_name}.pssm \
+    -out_pssm pssm/${gene_name}.pssm \
     -save_pssm_after_last_round \
-    -out ${gene_name}.internal.aln
+    -out pssm/${gene_name}.internal.aln
 
 echo Done
 """
@@ -812,7 +813,7 @@ process formatFASTA {
         file results_csv_gz
     
     output:
-        path "*/*.gz"
+        path "*/seq/*.gz"
     
 """
 #!/usr/bin/env python3
@@ -844,10 +845,11 @@ for operon_structure, operon_df in df.groupby("operon_context"):
 
     print("Writing out %d sequences for %s" % (operon_df.shape[0], operon_structure))
     os.mkdir(operon_folder)
+    os.mkdir(os.path.join(operon_folder, "seq"))
 
     # For each gene, make a FASTA file with the nucleotide sequence
     for gene_name, gene_df in df.groupby("gene_name"):
-        with gzip.open("%s/%s.alignments.fasta.gz" % (operon_folder, gene_name), "wt") as fo:
+        with gzip.open("%s/seq/%s.alignments.fasta.gz" % (operon_folder, gene_name), "wt") as fo:
             fo.write("\\n".join([
                 ">%s::%s::%s::%s-%s\\n%s" % (
                     r["genome_id"], 
@@ -861,7 +863,7 @@ for operon_structure, operon_df in df.groupby("operon_context"):
             ]))
 
         # Also write out the translated sequence
-        with gzip.open("%s/%s.alignments.fastp.gz" % (operon_folder, gene_name), "wt") as fo:
+        with gzip.open("%s/seq/%s.alignments.fastp.gz" % (operon_folder, gene_name), "wt") as fo:
             fo.write("\\n".join([
                 ">%s::%s::%s::%s-%s\\n%s" % (
                     r["genome_id"], 
@@ -882,14 +884,14 @@ process extractGBK {
     container "${container__biopython}"
     label 'io_limited'
     errorStrategy "terminate"
-    publishDir "${params.output_folder}/gbk/${operon_context}/", mode: 'copy', overwrite: true
+    publishDir params.output_folder, mode: 'copy', overwrite: true
 
     input:
         tuple val(genome_id), val(operon_context), val(operon_ix), val(contig_name), val(genome_name), file(annotation_gbk)
         file summary_csv
     
     output:
-        path "*gbk"
+        path "*/gbk/*gbk"
 
     script:
         template 'extractGBK.py'
