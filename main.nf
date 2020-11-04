@@ -33,6 +33,7 @@ include {
 
 // Docker containers reused across processes
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
+container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
 
 
@@ -871,7 +872,7 @@ for operon_structure, operon_df in df.groupby("operon_context"):
 
 // Extract the regions of each GBK which contains a hit
 process extractGBK {
-    container "${container__pandas}"
+    container "${container__biopython}"
     label 'io_limited'
     errorStrategy "retry"
     publishDir "${params.output_folder}/gbk/${operon_context}/", mode: 'copy', overwrite: true
