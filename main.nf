@@ -271,8 +271,28 @@ workflow {
         prokka(
             genome_ch
         )
+
+        // Make a channel with each unique operon context per genome and contig
+        annotation_ch = collectFinalResults.out.map {
+            r -> r.splitCsv(
+                header: true
+            )
+        }.flatten(
+        ).map { // Just keep the genome ID across all hits
+            r -> [
+                r["genome_id"],
+                r["operon_context"],
+                r["contig"],
+            ]
+        }.unique( // Drop duplicate entries
+        ).join( // Add the genomes
+            prokka.out
+        )
+
+        annotation_ch.view()
+
         
-        prokka.out.view()
+        // prokka.out.view()
 
     }
 
