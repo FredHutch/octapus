@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from Bio import SeqIO
+from collections import defaultdict
 import gzip
 import os
 import pandas as pd
@@ -54,6 +55,36 @@ recs = [
     if rec.id == '${contig_name}'
 ]
 print("Read in %d records" % len(recs))
+
+# Determine whether the operon is on the reverse strand
+# Start by parsing the operon context to see what strand(s) 
+# are expected for each gene
+target_gene_strand = defaultdict(list)
+for field in '${operon_context}'.split(" :: "):
+    gene_name, strand = field.split(" ", 1)
+    assert strand in ["(-)", "(+)"]
+    target_gene_strand[gene_name].append(
+        strand[1] # Remove the parentheses
+    )
+# Now for the genes in the operon on this contig, see
+# if they are consistent either with + or - overall orientation
+fwd_score = 0
+ref_score = 0
+for _, r in operon_df.iterrows():
+    assert r["strand"] in ["+", "-"], r
+    if r["strand"] in target_gene_strand[r["gene_name"]]:
+        fwd_score += 1
+    if {"+": "-", "-": "+"}.get(r["strand"]) in target_gene_strand[r["gene_name"]]:
+        rev_score += 1
+assert fwd_score > 0 or rev_score > 0, operon_df.reindex(columns=["gene_name", "strand"])
+if fwd_score >= rev_score:
+    print("Operon is on the forward strand")
+else:
+    print("Operon is on the reverse strand, so the output GBK will be reverse complemented")
+    recs = [
+        r.reverse_complement()
+        for r in recs
+    ]
 
 # Format the folder name
 operon_folder = "${operon_context}".replace(
