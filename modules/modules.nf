@@ -184,13 +184,16 @@ process prokka {
 
 set -euxo pipefail
 
+echo Decompressing input file
+gunzip -c "${fasta}" > INPUT.fasta
+
 echo Running Prokka
 
 prokka \
     --outdir OUTPUT \
     --prefix "${genome_id}" \
     --cpus ${task.cpus} \
-    "${fasta}"
+    INPUT.fasta
 
 echo Compressing outputs
 
