@@ -29,6 +29,8 @@ operon_df = operon_df.query(
     "genome_id == '${genome_id}'"
 ).query(
     "contig_name == '${contig_name}'"
+).query(
+    "operon_context == '${operon_context}'"
 )
 
 print(operon_df)

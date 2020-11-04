@@ -585,7 +585,7 @@ def operon_context(df, maximum_gap):
     output = []
 
     # Walk through each operon
-    for operon in operons:
+    for operon_ix, operon in enumerate(operons):
         # Format a string for the positive strand
         fwd_str = " :: ".join([
             "%s (%s)" % (i["gene_name"], i["strand"])
@@ -598,10 +598,13 @@ def operon_context(df, maximum_gap):
         ][::-1])
 
         # Assign the lexographically lower value for the operon structure string
-        for ix in operon:
-            output.append(min(fwd_str, rev_str))
+        for _ in operon:
+            output.append(dict(
+                operon_ix=operon_ix,
+                operon_context=min(fwd_str, rev_str),
+            ))
             
-    return pd.Series(output, index=df.index)
+    return pd.DataFrame(output, index=df.index)
 
 print("Processing alignments for ${genome_name.replaceAll(/"/, "")} against ${uuid}")
 
@@ -656,9 +659,11 @@ else:
     )
 
     # Figure out the "genome_context" and "operon_context" for each hit
-    df = df.assign(
-        genome_context = genome_context(df),
-        operon_context = operon_context(df, ${params.max_operon_gap}),
+    df = pd.concat([
+        df,
+        operon_context(df, ${params.max_operon_gap})
+    ], axis=1).assign(
+        genome_context = genome_context(df)
     )
 
     # Add the genome ID, name, and operon size
@@ -682,6 +687,7 @@ else:
             "contig_end",
             "genome_context",
             "operon_context",
+            "operon_ix",
             "operon_size",
             "pct_iden",
             "gene_cov",
