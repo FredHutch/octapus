@@ -2,11 +2,21 @@
 
 from Bio import SeqIO
 import pandas as pd
+import gzip
 
 print("Processing ${genome_id} -- ${genome_name}")
 
 print("Reading in annotations from ${annotation_gbk}")
-recs = [rec for rec in SeqIO.parse('${annotation_gbk}', "genbank")]
+recs = [
+    rec
+    for rec in SeqIO.parse(
+        gzip.open(
+            '${annotation_gbk}', 
+            'rt'
+        ), 
+        "genbank"
+    )
+]
 print("Read in %d records" % len(recs))
 
 print("Reading in operon data from ${summary_csv}")
