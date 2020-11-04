@@ -253,7 +253,7 @@ workflow {
 // Fetch genomes via FTP
 process fetchFTP {
     tag "Download NCBI genomes by FTP"
-    container 'quay.io/fhcrc-microbiome/wget@sha256:98b90e8bb8a171182505f1e255b0bd85cbbda68f08c08b4877c3fc48e63ac82f'
+    container 'quay.io/fhcrc-microbiome/wget:latest'
     label 'io_limited'
     errorStrategy "retry"
     maxForks params.ftp_threads
@@ -282,7 +282,7 @@ wget --quiet -O ${uuid}.fasta.gz ${ftp_prefix}/${uuid}_genomic.fna.gz
 // Align the operon against each individual genome
 process runBLAST {
     tag "Align operon"
-    container 'quay.io/fhcrc-microbiome/blast@sha256:1db09d0917e52913ed711fcc5eb281c06d0bb632ec8cd5a03610e2c3377e1753'
+    container 'quay.io/fhcrc-microbiome/blast:latest'
     label 'io_limited'
     errorStrategy "retry"
 
@@ -319,7 +319,7 @@ echo Done
 // Make a PSSM for each gene in the list of queries
 process makePSSM {
     tag "Identify conserved positions"
-    container 'quay.io/fhcrc-microbiome/blast@sha256:1db09d0917e52913ed711fcc5eb281c06d0bb632ec8cd5a03610e2c3377e1753'
+    container 'quay.io/fhcrc-microbiome/blast:latest'
     label 'io_limited'
     errorStrategy "retry"
     publishDir "${params.output_folder}", mode: "copy", overwrite: true
@@ -372,7 +372,7 @@ echo Done
 // Align the PSSM for each gene in the operon against each individual genome
 process runPSIBLAST {
     tag "Align PSSM for operon"
-    container 'quay.io/fhcrc-microbiome/blast@sha256:1db09d0917e52913ed711fcc5eb281c06d0bb632ec8cd5a03610e2c3377e1753'
+    container 'quay.io/fhcrc-microbiome/blast:latest'
     label 'io_limited'
     errorStrategy "retry"
 
