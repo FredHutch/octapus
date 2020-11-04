@@ -16,6 +16,8 @@ params.max_operon_gap = 10000
 params.batchsize = 100
 params.ftp_threads = 100
 params.max_evalue = 0.001
+params.annotations = false
+params.annotation_window = 10000
 
 // Import modules
 include {
@@ -23,6 +25,7 @@ include {
     collectResults as collectResultsRound2;
     collectFinalResults;
     summaryPDF;
+    prokka;
 } from './modules/modules' params(
     output_prefix: params.output_prefix,
     output_folder: params.output_folder,
@@ -30,7 +33,9 @@ include {
 
 // Docker containers reused across processes
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
+container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
+container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.4"
 
 
 // Function which prints help message text
@@ -53,6 +58,8 @@ def helpMessage() {
       --max_operon_gap      Maximum gap between genes in the same 'operon' (only used for the 'operon_context' output column) (default: 10000)
       --batchsize           Number of samples to join in each batch (default: 100)
       --max_evalue          Maximum E-value threshold used to filter initial alignments (default: 0.001)
+      --annotations         If specified, annotate the regions of all genomes which contain operons
+      --annotation_window   The additional area on either side of the operon to annotate (in bp) (default: 10000)
 
     Operon List Input:
 
@@ -70,6 +77,19 @@ def helpMessage() {
 
     When this type of analysis is performed, the --operon flag cannot be used, and additional
     outputs will be generated including the PSSM generated for each gene.
+
+    Annotations:
+
+    Note that including the --annotations flag will result in a larger amount of compute being
+    executed, including the annotation of input genomes using Prokka and the comparison of those 
+    genomes using clinker to form an interactive visualization (saved in the html/ output folder).
+
+    Citations:
+
+    Seemann T. Prokka: rapid prokaryotic genome annotation
+    Bioinformatics 2014 Jul 15;30(14):2068-9. PMID:24642063
+
+    Gilchrist, C.L.M, 2020. clinker: Easy gene cluster comparison figure generator.
 
     """.stripIndent()
 }
@@ -244,6 +264,60 @@ workflow {
         collectFinalResults.out
     )
 
+    // If the --annotations flag is set
+    if (params.annotations){
+
+        // Make a channel with the genomes containing all of the operons identified in this analysis
+        genome_ch = collectFinalResults.out.map {
+            r -> r.splitCsv(
+                header: true
+            )
+        }.flatten(
+        ).map { // Just keep the genome ID across all hits
+            r -> [
+                r["genome_id"],
+            ]
+        }.unique( // Drop duplicate entries
+        ).join( // Add the genomes
+            joined_fasta_ch
+        )
+
+        // Annotate these genomes with prokka
+        prokka(
+            genome_ch
+        )
+
+        // Make a channel with each unique operon per genome and contig
+        annotation_ch = collectFinalResults.out.map {
+            r -> r.splitCsv(
+                header: true
+            )
+        }.flatten(
+        ).map { // Just keep the genome ID across all hits
+            r -> [
+                r["genome_id"],
+                r["operon_context"],
+                r["operon_ix"],
+                r["contig_name"],
+            ]
+        }.unique( // Drop duplicate entries
+        ).join( // Add the genomes
+            prokka.out
+        )
+
+        // Extract the regions of the GBK files which operons fall into
+        extractGBK(
+            annotation_ch,
+            collectFinalResults.out
+        )
+
+        // Make a clinker webpage for each operon context
+        clinker(
+            extractGBK.out.groupTuple()
+        )
+        
+    }
+
 }
 
 // #############
@@ -328,8 +402,8 @@ process makePSSM {
         tuple val(gene_name), path(fasta)
     
     output:
-        file "${gene_name}.pssm"
-        file "${gene_name}.internal.aln"
+        file "pssm/${gene_name}.pssm"
+        file "pssm/${gene_name}.internal.aln"
     
 """
 #!/bin/bash
@@ -358,12 +432,13 @@ cat ${fasta} \
 > other_sequences.fasta
 
 # Third, run PSIBLAST to generate the PSSM
+mkdir pssm
 psiblast \
     -query first_sequence.fasta \
     -subject other_sequences.fasta \
-    -out_pssm ${gene_name}.pssm \
+    -out_pssm pssm/${gene_name}.pssm \
     -save_pssm_after_last_round \
-    -out ${gene_name}.internal.aln
+    -out pssm/${gene_name}.internal.aln
 
 echo Done
 """
@@ -531,7 +606,7 @@ def operon_context(df, maximum_gap):
     output = []
 
     # Walk through each operon
-    for operon in operons:
+    for operon_ix, operon in enumerate(operons):
         # Format a string for the positive strand
         fwd_str = " :: ".join([
             "%s (%s)" % (i["gene_name"], i["strand"])
@@ -544,10 +619,13 @@ def operon_context(df, maximum_gap):
         ][::-1])
 
         # Assign the lexographically lower value for the operon structure string
-        for ix in operon:
-            output.append(min(fwd_str, rev_str))
+        for _ in operon:
+            output.append(dict(
+                operon_ix=operon_ix,
+                operon_context=min(fwd_str, rev_str),
+            ))
             
-    return pd.Series(output, index=df.index)
+    return pd.DataFrame(output, index=df.index)
 
 print("Processing alignments for ${genome_name.replaceAll(/"/, "")} against ${uuid}")
 
@@ -602,9 +680,11 @@ else:
     )
 
     # Figure out the "genome_context" and "operon_context" for each hit
-    df = df.assign(
-        genome_context = genome_context(df),
-        operon_context = operon_context(df, ${params.max_operon_gap}),
+    df = pd.concat([
+        df,
+        operon_context(df, ${params.max_operon_gap})
+    ], axis=1).assign(
+        genome_context = genome_context(df)
     )
 
     # Add the genome ID, name, and operon size
@@ -628,6 +708,7 @@ else:
             "contig_end",
             "genome_context",
             "operon_context",
+            "operon_ix",
             "operon_size",
             "pct_iden",
             "gene_cov",
@@ -751,7 +832,7 @@ process formatFASTA {
         file results_csv_gz
     
     output:
-        path "*/*.gz"
+        path "*/seq/*.gz"
     
 """
 #!/usr/bin/env python3
@@ -783,10 +864,11 @@ for operon_structure, operon_df in df.groupby("operon_context"):
 
     print("Writing out %d sequences for %s" % (operon_df.shape[0], operon_structure))
     os.mkdir(operon_folder)
+    os.mkdir(os.path.join(operon_folder, "seq"))
 
     # For each gene, make a FASTA file with the nucleotide sequence
     for gene_name, gene_df in df.groupby("gene_name"):
-        with gzip.open("%s/%s.alignments.fasta.gz" % (operon_folder, gene_name), "wt") as fo:
+        with gzip.open("%s/seq/%s.alignments.fasta.gz" % (operon_folder, gene_name), "wt") as fo:
             fo.write("\\n".join([
                 ">%s::%s::%s::%s-%s\\n%s" % (
                     r["genome_id"], 
@@ -800,7 +882,7 @@ for operon_structure, operon_df in df.groupby("operon_context"):
             ]))
 
         # Also write out the translated sequence
-        with gzip.open("%s/%s.alignments.fastp.gz" % (operon_folder, gene_name), "wt") as fo:
+        with gzip.open("%s/seq/%s.alignments.fastp.gz" % (operon_folder, gene_name), "wt") as fo:
             fo.write("\\n".join([
                 ">%s::%s::%s::%s-%s\\n%s" % (
                     r["genome_id"], 
@@ -813,4 +895,52 @@ for operon_structure, operon_df in df.groupby("operon_context"):
                 for _, r in gene_df.iterrows()
             ]))
 """
+}
+
+
+// Extract the regions of each GBK which contains a hit
+process extractGBK {
+    container "${container__biopython}"
+    label 'io_limited'
+    errorStrategy "retry"
+    publishDir params.output_folder, mode: 'copy', overwrite: true
+
+    input:
+        tuple val(genome_id), val(operon_context), val(operon_ix), val(contig_name), val(genome_name), file(annotation_gbk)
+        file summary_csv
+    
+    output:
+        tuple val(operon_context), path("*/gbk/*gbk")
+
+    script:
+        template 'extractGBK.py'
+
+
+}
+
+// Make an interactive visual display for each operon context
+process clinker {
+    container "${container__clinker}"
+    label 'mem_medium'
+    errorStrategy "retry"
+    publishDir "${params.output_folder}/html/", mode: 'copy', overwrite: true
+
+    input:
+        tuple val(operon_context), file(input_gbk_files)
+    
+    output:
+        path "*html"
+
+"""#!/bin/bash
+
+OUTPUT=\$(echo "${operon_context.replaceAll(/ :: /, '_')}" | sed 's/ (\\+)/_FWD/g' | sed 's/ (-)/_REV/g')
+echo \$OUTPUT
+
+ls -lahtr
+
+clinker *gbk --webpage \$OUTPUT.html
+
+"""
+
+
 }

@@ -57,6 +57,7 @@ else:
         columns = [
             "operon_context",
             "operon_size",
+            "operon_ix",
             "genome_context",
             "genome_id",
             "genome_name",
@@ -166,4 +167,40 @@ set -e
 
 make_summary_figures.py "${results_csv_gz}" "${params.output_prefix}.pdf"
 """
+}
+
+// Annotate a genome with Prokka
+process prokka {
+    container "staphb/prokka:latest"
+    label "mem_medium"
+    errorStrategy 'retry'
+
+    input:
+    tuple val(genome_id), val(genome_name), file(fasta)
+
+    output:
+    tuple val(genome_id), val(genome_name), file("OUTPUT/${genome_id}.gbk.gz")
+
+"""#!/bin/bash
+
+set -euxo pipefail
+
+echo Decompressing input file
+gunzip -c "${fasta}" > INPUT.fasta
+
+echo Running Prokka
+
+prokka \
+    --outdir OUTPUT \
+    --prefix "${genome_id}" \
+    --cpus ${task.cpus} \
+    INPUT.fasta
+
+echo Compressing outputs
+
+gzip OUTPUT/*
+
+echo Done
+"""
+
 }
