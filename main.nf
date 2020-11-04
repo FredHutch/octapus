@@ -282,18 +282,19 @@ workflow {
             r -> [
                 r["genome_id"],
                 r["operon_context"],
-                r["contig"],
+                r["contig_name"],
             ]
         }.unique( // Drop duplicate entries
         ).join( // Add the genomes
             prokka.out
         )
 
-        annotation_ch.view()
-
+        // Extract the regions of the GBK files which operons fall into
+        extractGBK(
+            annotation_ch,
+            collectFinalResults.out
+        )
         
-        // prokka.out.view()
-
     }
 
 }
@@ -865,4 +866,24 @@ for operon_structure, operon_df in df.groupby("operon_context"):
                 for _, r in gene_df.iterrows()
             ]))
 """
+}
+
+
+// Extract the regions of each GBK which contains a hit
+process extractGBK {
+    container "${container__pandas}"
+    label 'io_limited'
+    errorStrategy "retry"
+    publishDir "${params.output_folder}/gbk/${operon_context}/", mode: 'copy', overwrite: true
+
+    input:
+        tuple val(genome_id), val(operon_context), val(contig_name), val(genome_name), file(annotation_gbk)
+    
+    output:
+        path "*gbk"
+
+    script:
+        template 'extractGBK.py'
+
+
 }
