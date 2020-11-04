@@ -920,7 +920,11 @@ process clinker {
 
 """#!/bin/bash
 
-clinker *gbk --webpage "${operon_context}.html"
+OUTPUT="${operon_context.replaceAll(/ :: /, '_').replaceAll(/ (+)/, '_FWD').replaceAll(/ (-)/, '_REV')}"
+
+ls -lahtr
+
+clinker *gbk --webpage \$OUTPUT.html
 
 """
 
