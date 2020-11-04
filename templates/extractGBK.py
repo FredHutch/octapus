@@ -5,19 +5,9 @@ import pandas as pd
 import gzip
 
 print("Processing ${genome_id} -- ${genome_name}")
-
-print("Reading in annotations from ${annotation_gbk}")
-recs = [
-    rec
-    for rec in SeqIO.parse(
-        gzip.open(
-            '${annotation_gbk}', 
-            'rt'
-        ), 
-        "genbank"
-    )
-]
-print("Read in %d records" % len(recs))
+print("Contig: ${contig_name}")
+print("Operon Context: ${operon_context}")
+print("Operon index: ${operon_ix}")
 
 print("Reading in operon data from ${summary_csv}")
 operon_df = pd.read_csv("${summary_csv}")
@@ -31,6 +21,46 @@ operon_df = operon_df.query(
     "contig_name == '${contig_name}'"
 ).query(
     "operon_context == '${operon_context}'"
+).query(
+    "operon_ix == '${operon_ix}'"
 )
 
-print(operon_df)
+# Get the smallest and largest coordinate
+start_pos = operon_df.reindex(columns=["contig_start", "contig_end"]).min(axis=1).min()
+end_pos = operon_df.reindex(columns=["contig_start", "contig_end"]).max(axis=1).max()
+print("Operon spans %d to %d on ${contig_name}" % (start_pos, end_pos))
+
+# Add the window on each side
+start_pos = start_pos - ${params.annotation_window}
+if start_pos < 1:
+    start_pos = 1
+
+end_pos = end_pos + ${params.annotation_window}
+
+print("Start position: %d" % start_pos)
+print("End position: %d" % end_pos)
+
+print("Filtering annotations from ${annotation_gbk}")
+recs = [
+    rec[start_pos:min(end_pos, len(rec.seq) - 1)]
+    for rec in SeqIO.parse(
+        gzip.open(
+            '${annotation_gbk}',
+            'rt'
+        ),
+        "genbank"
+    )
+    if rec.id == '${contig_name}'
+]
+print("Read in %d records" % len(recs))
+
+
+# Define the output file name
+output_fp = "${genome_id}-${contig_name}-${operon_ix}.gbk"
+print("Writing out to %s" % output_fp)
+with open(output_fp, "wt") as handle:
+    SeqIO.write(
+        recs,
+        handle,
+        "genbank"
+    )

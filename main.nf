@@ -273,7 +273,7 @@ workflow {
             genome_ch
         )
 
-        // Make a channel with each unique operon context per genome and contig
+        // Make a channel with each unique operon per genome and contig
         annotation_ch = collectFinalResults.out.map {
             r -> r.splitCsv(
                 header: true
@@ -283,6 +283,7 @@ workflow {
             r -> [
                 r["genome_id"],
                 r["operon_context"],
+                r["operon_ix"],
                 r["contig_name"],
             ]
         }.unique( // Drop duplicate entries
@@ -884,7 +885,7 @@ process extractGBK {
     publishDir "${params.output_folder}/gbk/${operon_context}/", mode: 'copy', overwrite: true
 
     input:
-        tuple val(genome_id), val(operon_context), val(contig_name), val(genome_name), file(annotation_gbk)
+        tuple val(genome_id), val(operon_context), val(operon_ix), val(contig_name), val(genome_name), file(annotation_gbk)
         file summary_csv
     
     output:
