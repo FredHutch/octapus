@@ -35,7 +35,7 @@ include {
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
 container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
-container__clinker = "quay.io/fhcrc-microbiome/clinker:latest"
+container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.3"
 
 
 // Function which prints help message text
@@ -909,7 +909,7 @@ process extractGBK {
 process clinker {
     container "${container__clinker}"
     label 'mem_medium'
-    errorStrategy "terminate"
+    errorStrategy "retry"
     publishDir "${params.output_folder}/html/", mode: 'copy', overwrite: true
 
     input:
