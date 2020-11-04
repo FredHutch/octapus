@@ -69,7 +69,7 @@ for field in '${operon_context}'.split(" :: "):
 # Now for the genes in the operon on this contig, see
 # if they are consistent either with + or - overall orientation
 fwd_score = 0
-ref_score = 0
+rev_score = 0
 for _, r in operon_df.iterrows():
     assert r["strand"] in ["+", "-"], r
     if r["strand"] in target_gene_strand[r["gene_name"]]:
