@@ -1,12 +1,58 @@
-// Docker containers reused across processes
-container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
-container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
+// Parse the manifest and sanitize the fields
+process sanitize_manifest {
+    container "${params.container__pandas}"
+    label 'io_limited'
+    errorStrategy "retry"
 
+    input:
+        path "raw.manifest.csv"
+    
+    output:
+        path "manifest.csv", emit: manifest
+    
+"""
+#!/usr/bin/env python3
+
+import pandas as pd
+import re
+
+df = pd.read_csv("raw.manifest.csv")
+
+print("Subsetting to three columns")
+df = df.reindex(
+    columns = [
+        "GenBank FTP",
+        "#Organism Name",
+        "uri"
+    ]
+)
+
+# Remove rows where the "GenBank FTP" doesn't start with "ftp://"
+input_count = df.shape[0]
+df = df.loc[
+    (df["GenBank FTP"].fillna(
+        ""
+    ).apply(
+        lambda n: str(n).startswith("ftp://")
+    )) | (
+        df["uri"].fillna("").apply(len) > 0
+    )
+]
+print("%d / %d rows have valid FTP or file paths" % (input_count, df.shape[0]))
+
+# Force organism names to be alphanumeric
+df = df.apply(
+    lambda c: c.apply(lambda n: re.sub('[^0-9a-zA-Z .]+', '_', n)) if c.name == "#Organism Name" else c
+)
+
+df.to_csv("manifest.csv", index=None, sep=",")
+"""
+}
 
 // Parse each individual alignment file
 process collectResults {
     
-    container "${container__pandas}"
+    container "${params.container__pandas}"
     label 'io_limited'
     errorStrategy "retry"
 
@@ -92,7 +138,7 @@ print("Done")
 // Parse each individual alignment file and publish the final results
 process collectFinalResults {
     
-    container "${container__pandas}"
+    container "${params.container__pandas}"
     label 'io_limited'
     publishDir "${params.output_folder}", mode: "copy", overwrite: true
     errorStrategy "retry"
@@ -149,7 +195,7 @@ print("Done")
 // Make a results summary PDF
 process summaryPDF {
     tag "Process final results"
-    container "${container__plotting}"
+    container "${params.container__plotting}"
     label 'io_limited'
     errorStrategy "retry"
     publishDir "${params.output_folder}", mode: "copy", overwrite: true
@@ -203,4 +249,81 @@ gzip OUTPUT/*
 echo Done
 """
 
+}
+
+
+// Extract the regions of each GBK which contains a hit
+process extractGBK {
+    container "${params.container__biopython}"
+    label 'io_limited'
+    errorStrategy "retry"
+    publishDir params.output_folder, mode: 'copy', overwrite: true
+
+    input:
+        tuple val(genome_id), val(operon_context), val(operon_ix), val(contig_name), val(genome_name), file(annotation_gbk)
+        file summary_csv
+    
+    output:
+        tuple val(operon_context), path("*/gbk/*gbk")
+
+    script:
+        template 'extractGBK.py'
+
+}
+
+// Make an interactive visual display for each operon context
+process clinker {
+    container "${params.container__clinker}"
+    label 'mem_medium'
+    errorStrategy "retry"
+    publishDir "${params.output_folder}/html/", mode: 'copy', overwrite: true
+
+    input:
+        tuple val(operon_context), file(input_gbk_files)
+    
+    output:
+        path "*html"
+
+"""#!/bin/bash
+
+OUTPUT=\$(echo "${operon_context.replaceAll(/ :: /, '_')}" | sed 's/ (\\+)/_FWD/g' | sed 's/ (-)/_REV/g')
+echo \$OUTPUT
+
+ls -lahtr
+
+clinker *gbk --webpage \$OUTPUT.html
+
+"""
+
+
+}
+
+
+// Fetch genomes via FTP
+process fetchFTP {
+    tag "Download NCBI genomes by FTP"
+    container 'quay.io/fhcrc-microbiome/wget:latest'
+    label 'io_limited'
+    errorStrategy "retry"
+    maxForks params.ftp_threads
+
+    input:
+        tuple val(uuid), val(genome_name), val(ftp_prefix)
+    
+    output:
+        tuple val(uuid), val(genome_name), file("${uuid}.fasta.gz")
+    
+"""
+#!/bin/bash
+set -e
+
+
+echo "Downloading ${uuid} from ${ftp_prefix}"
+
+wget --quiet -O ${uuid}.fasta.gz ${ftp_prefix}/${uuid}_genomic.fna.gz
+
+# Make sure the file is gzip compressed
+(gzip -t ${uuid}.fasta.gz && echo "${uuid}.fasta.gz is in gzip format") || ( echo "${uuid}.fasta.gz is NOT in gzip format" && exit 1 )
+
+"""
 }

@@ -19,17 +19,6 @@ params.max_evalue = 0.001
 params.annotations = false
 params.annotation_window = 10000
 
-// Import modules
-include {
-    collectResults as collectResultsRound1;
-    collectResults as collectResultsRound2;
-    collectFinalResults;
-    summaryPDF;
-    prokka;
-} from './modules/modules' params(
-    output_prefix: params.output_prefix,
-    output_folder: params.output_folder,
-)
 
 // Docker containers reused across processes
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
@@ -37,6 +26,27 @@ container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
 container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.4"
 
+// Import modules
+include {
+    collectResults as collectResultsRound1;
+    collectResults as collectResultsRound2;
+    collectFinalResults;
+    fetchFTP;
+    summaryPDF;
+    prokka;
+    extractGBK;
+    clinker;
+    sanitize_manifest;
+} from './modules/modules' params(
+    output_prefix: params.output_prefix,
+    output_folder: params.output_folder,
+    ftp_threads: params.ftp_threads,
+    annotation_window: params.annotation_window,
+    container__pandas: container__pandas,
+    container__plotting: container__plotting,
+    container__biopython: container__biopython,
+    container__clinker: container__clinker,
+)
 
 // Function which prints help message text
 def helpMessage() {
@@ -78,11 +88,16 @@ def helpMessage() {
     When this type of analysis is performed, the --operon flag cannot be used, and additional
     outputs will be generated including the PSSM generated for each gene.
 
+
     Annotations:
 
     Note that including the --annotations flag will result in a larger amount of compute being
     executed, including the annotation of input genomes using Prokka and the comparison of those 
     genomes using clinker to form an interactive visualization (saved in the html/ output folder).
+
+    As an alternative approach, we suggest using the entrypoint 'FredHutch/BOFFO/annotate.nf',
+    which allows the user to annotate just a subset of the results from a set of BOFFO alignments.
+
 
     Citations:
 
@@ -324,34 +339,6 @@ workflow {
 // # PROCESSES #
 // #############
 
-// Fetch genomes via FTP
-process fetchFTP {
-    tag "Download NCBI genomes by FTP"
-    container 'quay.io/fhcrc-microbiome/wget:latest'
-    label 'io_limited'
-    errorStrategy "retry"
-    maxForks params.ftp_threads
-
-    input:
-        tuple val(uuid), val(genome_name), val(ftp_prefix)
-    
-    output:
-        tuple val(uuid), val(genome_name), file("${uuid}.fasta.gz")
-    
-"""
-#!/bin/bash
-set -e
-
-
-echo "Downloading ${uuid} from ${ftp_prefix}"
-
-wget --quiet -O ${uuid}.fasta.gz ${ftp_prefix}/${uuid}_genomic.fna.gz
-
-# Make sure the file is gzip compressed
-(gzip -t ${uuid}.fasta.gz && echo "${uuid}.fasta.gz is in gzip format") || ( echo "${uuid}.fasta.gz is NOT in gzip format" && exit 1 )
-
-"""
-}
 
 // Align the operon against each individual genome
 process runBLAST {
@@ -484,57 +471,6 @@ echo "Compressing alignment file"
 gzip ${uuid}.aln
 
 echo Done
-"""
-}
-
-// Parse the manifest and sanitize the fields
-process sanitize_manifest {
-    container "${container__pandas}"
-    label 'io_limited'
-    errorStrategy "retry"
-
-    input:
-        path "raw.manifest.csv"
-    
-    output:
-        path "manifest.csv", emit: manifest
-    
-"""
-#!/usr/bin/env python3
-
-import pandas as pd
-import re
-
-df = pd.read_csv("raw.manifest.csv")
-
-print("Subsetting to three columns")
-df = df.reindex(
-    columns = [
-        "GenBank FTP",
-        "#Organism Name",
-        "uri"
-    ]
-)
-
-# Remove rows where the "GenBank FTP" doesn't start with "ftp://"
-input_count = df.shape[0]
-df = df.loc[
-    (df["GenBank FTP"].fillna(
-        ""
-    ).apply(
-        lambda n: str(n).startswith("ftp://")
-    )) | (
-        df["uri"].fillna("").apply(len) > 0
-    )
-]
-print("%d / %d rows have valid FTP or file paths" % (input_count, df.shape[0]))
-
-# Force organism names to be alphanumeric
-df = df.apply(
-    lambda c: c.apply(lambda n: re.sub('[^0-9a-zA-Z .]+', '_', n)) if c.name == "#Organism Name" else c
-)
-
-df.to_csv("manifest.csv", index=None, sep=",")
 """
 }
 
@@ -895,52 +831,4 @@ for operon_structure, operon_df in df.groupby("operon_context"):
                 for _, r in gene_df.iterrows()
             ]))
 """
-}
-
-
-// Extract the regions of each GBK which contains a hit
-process extractGBK {
-    container "${container__biopython}"
-    label 'io_limited'
-    errorStrategy "retry"
-    publishDir params.output_folder, mode: 'copy', overwrite: true
-
-    input:
-        tuple val(genome_id), val(operon_context), val(operon_ix), val(contig_name), val(genome_name), file(annotation_gbk)
-        file summary_csv
-    
-    output:
-        tuple val(operon_context), path("*/gbk/*gbk")
-
-    script:
-        template 'extractGBK.py'
-
-
-}
-
-// Make an interactive visual display for each operon context
-process clinker {
-    container "${container__clinker}"
-    label 'mem_medium'
-    errorStrategy "retry"
-    publishDir "${params.output_folder}/html/", mode: 'copy', overwrite: true
-
-    input:
-        tuple val(operon_context), file(input_gbk_files)
-    
-    output:
-        path "*html"
-
-"""#!/bin/bash
-
-OUTPUT=\$(echo "${operon_context.replaceAll(/ :: /, '_')}" | sed 's/ (\\+)/_FWD/g' | sed 's/ (-)/_REV/g')
-echo \$OUTPUT
-
-ls -lahtr
-
-clinker *gbk --webpage \$OUTPUT.html
-
-"""
-
-
 }
