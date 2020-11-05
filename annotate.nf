@@ -21,6 +21,7 @@ include {
     prokka;
     extractGBK;
     clinker;
+    sanitize_manifest;
 } from './modules/modules' params(
     output_prefix: params.output_prefix,
     output_folder: params.output_folder,
