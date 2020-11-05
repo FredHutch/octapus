@@ -9,6 +9,7 @@ params.output_folder = false
 params.boffo_results = false
 params.genomes = false
 params.annotation_window = 10000
+params.ftp_threads = 100
 
 // Docker containers reused across processes
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
@@ -24,7 +25,6 @@ include {
     sanitize_manifest;
     fetchFTP;
 } from './modules/modules' params(
-    output_prefix: params.output_prefix,
     output_folder: params.output_folder,
     ftp_threads: params.ftp_threads,
     annotation_window: params.annotation_window,
