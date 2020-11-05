@@ -25,6 +25,8 @@ include {
     output_prefix: params.output_prefix,
     output_folder: params.output_folder,
     annotation_window: params.annotation_window,
+    container__pandas: container__pandas,
+    container__plotting: container__plotting,
     container__biopython: container__biopython,
     container__clinker: container__clinker,
 )

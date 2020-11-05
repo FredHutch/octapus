@@ -35,10 +35,13 @@ include {
     prokka;
     extractGBK;
     clinker;
+    sanitize_manifest;
 } from './modules/modules' params(
     output_prefix: params.output_prefix,
     output_folder: params.output_folder,
     annotation_window: params.annotation_window,
+    container__pandas: container__pandas,
+    container__plotting: container__plotting,
     container__biopython: container__biopython,
     container__clinker: container__clinker,
 )
@@ -494,57 +497,6 @@ echo "Compressing alignment file"
 gzip ${uuid}.aln
 
 echo Done
-"""
-}
-
-// Parse the manifest and sanitize the fields
-process sanitize_manifest {
-    container "${container__pandas}"
-    label 'io_limited'
-    errorStrategy "retry"
-
-    input:
-        path "raw.manifest.csv"
-    
-    output:
-        path "manifest.csv", emit: manifest
-    
-"""
-#!/usr/bin/env python3
-
-import pandas as pd
-import re
-
-df = pd.read_csv("raw.manifest.csv")
-
-print("Subsetting to three columns")
-df = df.reindex(
-    columns = [
-        "GenBank FTP",
-        "#Organism Name",
-        "uri"
-    ]
-)
-
-# Remove rows where the "GenBank FTP" doesn't start with "ftp://"
-input_count = df.shape[0]
-df = df.loc[
-    (df["GenBank FTP"].fillna(
-        ""
-    ).apply(
-        lambda n: str(n).startswith("ftp://")
-    )) | (
-        df["uri"].fillna("").apply(len) > 0
-    )
-]
-print("%d / %d rows have valid FTP or file paths" % (input_count, df.shape[0]))
-
-# Force organism names to be alphanumeric
-df = df.apply(
-    lambda c: c.apply(lambda n: re.sub('[^0-9a-zA-Z .]+', '_', n)) if c.name == "#Organism Name" else c
-)
-
-df.to_csv("manifest.csv", index=None, sep=",")
 """
 }
 

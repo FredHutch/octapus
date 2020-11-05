@@ -1,12 +1,58 @@
-// Docker containers reused across processes
-container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
-container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
+// Parse the manifest and sanitize the fields
+process sanitize_manifest {
+    container "${params.container__pandas}"
+    label 'io_limited'
+    errorStrategy "retry"
 
+    input:
+        path "raw.manifest.csv"
+    
+    output:
+        path "manifest.csv", emit: manifest
+    
+"""
+#!/usr/bin/env python3
+
+import pandas as pd
+import re
+
+df = pd.read_csv("raw.manifest.csv")
+
+print("Subsetting to three columns")
+df = df.reindex(
+    columns = [
+        "GenBank FTP",
+        "#Organism Name",
+        "uri"
+    ]
+)
+
+# Remove rows where the "GenBank FTP" doesn't start with "ftp://"
+input_count = df.shape[0]
+df = df.loc[
+    (df["GenBank FTP"].fillna(
+        ""
+    ).apply(
+        lambda n: str(n).startswith("ftp://")
+    )) | (
+        df["uri"].fillna("").apply(len) > 0
+    )
+]
+print("%d / %d rows have valid FTP or file paths" % (input_count, df.shape[0]))
+
+# Force organism names to be alphanumeric
+df = df.apply(
+    lambda c: c.apply(lambda n: re.sub('[^0-9a-zA-Z .]+', '_', n)) if c.name == "#Organism Name" else c
+)
+
+df.to_csv("manifest.csv", index=None, sep=",")
+"""
+}
 
 // Parse each individual alignment file
 process collectResults {
     
-    container "${container__pandas}"
+    container "${params.container__pandas}"
     label 'io_limited'
     errorStrategy "retry"
 
@@ -92,7 +138,7 @@ print("Done")
 // Parse each individual alignment file and publish the final results
 process collectFinalResults {
     
-    container "${container__pandas}"
+    container "${params.container__pandas}"
     label 'io_limited'
     publishDir "${params.output_folder}", mode: "copy", overwrite: true
     errorStrategy "retry"
@@ -149,7 +195,7 @@ print("Done")
 // Make a results summary PDF
 process summaryPDF {
     tag "Process final results"
-    container "${container__plotting}"
+    container "${params.container__plotting}"
     label 'io_limited'
     errorStrategy "retry"
     publishDir "${params.output_folder}", mode: "copy", overwrite: true
