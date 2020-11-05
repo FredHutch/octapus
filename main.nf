@@ -19,17 +19,6 @@ params.max_evalue = 0.001
 params.annotations = false
 params.annotation_window = 10000
 
-// Import modules
-include {
-    collectResults as collectResultsRound1;
-    collectResults as collectResultsRound2;
-    collectFinalResults;
-    summaryPDF;
-    prokka;
-} from './modules/modules' params(
-    output_prefix: params.output_prefix,
-    output_folder: params.output_folder,
-)
 
 // Docker containers reused across processes
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
@@ -37,6 +26,22 @@ container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
 container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.4"
 
+// Import modules
+include {
+    collectResults as collectResultsRound1;
+    collectResults as collectResultsRound2;
+    collectFinalResults;
+    summaryPDF;
+    prokka;
+    extractGBK;
+    clinker;
+} from './modules/modules' params(
+    output_prefix: params.output_prefix,
+    output_folder: params.output_folder,
+    annotation_window: params.annotation_window,
+    container__biopython: container__biopython,
+    container__clinker: container__clinker,
+)
 
 // Function which prints help message text
 def helpMessage() {
@@ -895,52 +900,4 @@ for operon_structure, operon_df in df.groupby("operon_context"):
                 for _, r in gene_df.iterrows()
             ]))
 """
-}
-
-
-// Extract the regions of each GBK which contains a hit
-process extractGBK {
-    container "${container__biopython}"
-    label 'io_limited'
-    errorStrategy "retry"
-    publishDir params.output_folder, mode: 'copy', overwrite: true
-
-    input:
-        tuple val(genome_id), val(operon_context), val(operon_ix), val(contig_name), val(genome_name), file(annotation_gbk)
-        file summary_csv
-    
-    output:
-        tuple val(operon_context), path("*/gbk/*gbk")
-
-    script:
-        template 'extractGBK.py'
-
-
-}
-
-// Make an interactive visual display for each operon context
-process clinker {
-    container "${container__clinker}"
-    label 'mem_medium'
-    errorStrategy "retry"
-    publishDir "${params.output_folder}/html/", mode: 'copy', overwrite: true
-
-    input:
-        tuple val(operon_context), file(input_gbk_files)
-    
-    output:
-        path "*html"
-
-"""#!/bin/bash
-
-OUTPUT=\$(echo "${operon_context.replaceAll(/ :: /, '_')}" | sed 's/ (\\+)/_FWD/g' | sed 's/ (-)/_REV/g')
-echo \$OUTPUT
-
-ls -lahtr
-
-clinker *gbk --webpage \$OUTPUT.html
-
-"""
-
-
 }

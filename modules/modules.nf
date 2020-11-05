@@ -204,3 +204,50 @@ echo Done
 """
 
 }
+
+
+// Extract the regions of each GBK which contains a hit
+process extractGBK {
+    container "${params.container__biopython}"
+    label 'io_limited'
+    errorStrategy "retry"
+    publishDir params.output_folder, mode: 'copy', overwrite: true
+
+    input:
+        tuple val(genome_id), val(operon_context), val(operon_ix), val(contig_name), val(genome_name), file(annotation_gbk)
+        file summary_csv
+    
+    output:
+        tuple val(operon_context), path("*/gbk/*gbk")
+
+    script:
+        template 'extractGBK.py'
+
+}
+
+// Make an interactive visual display for each operon context
+process clinker {
+    container "${params.container__clinker}"
+    label 'mem_medium'
+    errorStrategy "retry"
+    publishDir "${params.output_folder}/html/", mode: 'copy', overwrite: true
+
+    input:
+        tuple val(operon_context), file(input_gbk_files)
+    
+    output:
+        path "*html"
+
+"""#!/bin/bash
+
+OUTPUT=\$(echo "${operon_context.replaceAll(/ :: /, '_')}" | sed 's/ (\\+)/_FWD/g' | sed 's/ (-)/_REV/g')
+echo \$OUTPUT
+
+ls -lahtr
+
+clinker *gbk --webpage \$OUTPUT.html
+
+"""
+
+
+}
