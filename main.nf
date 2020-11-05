@@ -83,11 +83,16 @@ def helpMessage() {
     When this type of analysis is performed, the --operon flag cannot be used, and additional
     outputs will be generated including the PSSM generated for each gene.
 
+
     Annotations:
 
     Note that including the --annotations flag will result in a larger amount of compute being
     executed, including the annotation of input genomes using Prokka and the comparison of those 
     genomes using clinker to form an interactive visualization (saved in the html/ output folder).
+
+    As an alternative approach, we suggest using the entrypoint 'FredHutch/BOFFO/annotate.nf',
+    which allows the user to annotate just a subset of the results from a set of BOFFO alignments.
+
 
     Citations:
 
