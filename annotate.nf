@@ -126,12 +126,14 @@ workflow {
     )
 
     // Parse the BOFFO outputs provided by the user
-    boffo_results_ch = Channel.fromPath(
-        params.boffo_results
+    parse_spreadsheet(
+        Channel.fromPath(
+            params.boffo_results
+        )
     )
 
     // Make a channel with the genomes containing all of the operons identified in this analysis
-    genome_ch = boffo_results_ch.map {
+    genome_ch = parse_spreadsheet.out.map {
         r -> r.splitCsv(
             header: true
         )
@@ -151,7 +153,7 @@ workflow {
     )
 
     // Make a channel with each unique operon per genome and contig
-    annotation_ch = boffo_results_ch.map {
+    annotation_ch = parse_spreadsheet.out.map {
         r -> r.splitCsv(
             header: true
         )
@@ -171,12 +173,66 @@ workflow {
     // Extract the regions of the GBK files which operons fall into
     extractGBK(
         annotation_ch,
-        boffo_results_ch
+        parse_spreadsheet.out
     )
 
     // Make a clinker webpage for each operon context
     clinker(
         extractGBK.out.groupTuple()
     )
+
+}
+
+process parse_spreadsheet {
+    container "${container__pandas}"
+    label 'io_limited'
+    errorStrategy "retry"
+
+    input:
+        file input_spreadsheet
+    
+    output:
+        file "${input_spreadsheet}.csv"
+
+"""#!/usr/bin/env python3
+
+# Parse the filepath
+input_spreadsheet = '${input_spreadsheet}'
+
+# Use the file ending to determine how it is read
+
+# If the input is a gzip-compressed CSV
+if input_spreadsheet.endswith(".csv.gz"):
+    df = pd.read_csv(
+        input_spreadsheet,
+        sep=",",
+        compression="gzip"
+    )
+
+# If the input is a uncompressed CSV
+elif input_spreadsheet.endswith(".csv"):
+    df = pd.read_csv(
+        input_spreadsheet,
+        sep=",",
+    )
+
+# If the input is an Excel spreadsheet
+elif input_spreadsheet.endswith(".xlsx"):
+
+    df = pd.read_excel(
+        input_spreadsheet,
+    )
+
+else:
+
+    assert False, "Could not parse file ending: %s" % input_spreadsheet
+
+# Write out to a file
+input_spreadsheet.to_csv(
+    "${input_spreadsheet}.csv",
+    index=None
+)
+
+"""
 
 }
