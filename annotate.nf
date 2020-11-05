@@ -22,9 +22,11 @@ include {
     extractGBK;
     clinker;
     sanitize_manifest;
+    fetchFTP;
 } from './modules/modules' params(
     output_prefix: params.output_prefix,
     output_folder: params.output_folder,
+    ftp_threads: params.ftp_threads,
     annotation_window: params.annotation_window,
     container__pandas: container__pandas,
     container__plotting: container__plotting,

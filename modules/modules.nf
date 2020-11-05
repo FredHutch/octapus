@@ -297,3 +297,33 @@ clinker *gbk --webpage \$OUTPUT.html
 
 
 }
+
+
+// Fetch genomes via FTP
+process fetchFTP {
+    tag "Download NCBI genomes by FTP"
+    container 'quay.io/fhcrc-microbiome/wget:latest'
+    label 'io_limited'
+    errorStrategy "retry"
+    maxForks params.ftp_threads
+
+    input:
+        tuple val(uuid), val(genome_name), val(ftp_prefix)
+    
+    output:
+        tuple val(uuid), val(genome_name), file("${uuid}.fasta.gz")
+    
+"""
+#!/bin/bash
+set -e
+
+
+echo "Downloading ${uuid} from ${ftp_prefix}"
+
+wget --quiet -O ${uuid}.fasta.gz ${ftp_prefix}/${uuid}_genomic.fna.gz
+
+# Make sure the file is gzip compressed
+(gzip -t ${uuid}.fasta.gz && echo "${uuid}.fasta.gz is in gzip format") || ( echo "${uuid}.fasta.gz is NOT in gzip format" && exit 1 )
+
+"""
+}
