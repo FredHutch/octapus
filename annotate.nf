@@ -201,6 +201,8 @@ process parse_spreadsheet {
 
 """#!/usr/bin/env python3
 
+import pandas as pd
+
 # Parse the filepath
 input_spreadsheet = '${input_spreadsheet}'
 
