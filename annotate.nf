@@ -235,7 +235,7 @@ else:
     assert False, "Could not parse file ending: %s" % input_spreadsheet
 
 # Write out to a file
-input_spreadsheet.to_csv(
+df.to_csv(
     "${input_spreadsheet}.csv",
     index=None
 )
