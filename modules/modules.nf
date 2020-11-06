@@ -286,7 +286,7 @@ process clinker {
 
 """#!/bin/bash
 
-OUTPUT=\$(echo "${operon_context.replaceAll(/ :: /, '_')}" | sed 's/ (\\+)/_FWD/g' | sed 's/ (-)/_REV/g')
+OUTPUT=\$(echo "${operon_context.replaceAll(/ :: /, '_')}" | sed 's/ (+)/_FWD/g' | sed 's/ (-)/_REV/g')
 echo \$OUTPUT
 
 ls -lahtr
