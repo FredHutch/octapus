@@ -177,8 +177,8 @@ workflow {
 
     // Extract the regions of the GBK files which operons fall into
     extractGBK(
-        parse_spreadsheet.out,
         annotation_ch,
+        parse_spreadsheet.out
     )
 
     // Make a clinker webpage for each operon context
