@@ -322,8 +322,8 @@ workflow {
 
         // Extract the regions of the GBK files which operons fall into
         extractGBK(
+            collectFinalResults.out,
             annotation_ch,
-            collectFinalResults.out
         )
 
         // Make a clinker webpage for each operon context
