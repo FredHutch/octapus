@@ -261,7 +261,7 @@ process extractGBK {
 
     input:
         tuple val(genome_id), val(operon_context), val(operon_ix), val(contig_name), val(genome_name), file(annotation_gbk)
-        file summary_csv
+        each file(summary_csv)
     
     output:
         tuple val(operon_context), path("*/gbk/*gbk")
