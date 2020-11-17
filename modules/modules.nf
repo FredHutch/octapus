@@ -232,7 +232,7 @@ process prokka {
 set -euxo pipefail
 
 echo Decompressing input file
-gunzip -c "${fasta}" > INPUT.fasta
+gunzip -c "${fasta}" | sed 's/[^>0-9A-Za-z]/_/g' > INPUT.fasta
 
 echo Running Prokka
 
