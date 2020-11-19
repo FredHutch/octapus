@@ -32,6 +32,7 @@ include {
     collectResults as collectResultsRound2;
     collectFinalResults;
     fetchFTP;
+    validateFASTA;
     summaryPDF;
     prokka;
     extractGBK;
@@ -193,6 +194,11 @@ workflow {
         }
     )
 
+    // Process all FASTA inputs to make sure that their format is valid
+    validateFASTA(
+        joined_fasta_ch
+    )
+
     // Each gene in the operon is represented by a single sequence in a
     // multi-FASTA which contains all of the genes in the operon
     if (params.operon){
@@ -210,7 +216,7 @@ workflow {
 
         // Simply run BLAST on each of the genomes
         runBLAST(
-            joined_fasta_ch,
+            validateFASTA.out,
             operon_fasta
         )
 
@@ -235,7 +241,7 @@ workflow {
 
         // Run PSIBLAST for each gene against this genome
         runPSIBLAST(
-            joined_fasta_ch,
+            validateFASTA.out,
             makePSSM.out[0].toSortedList()
         )
 
@@ -249,7 +255,7 @@ workflow {
     // Join the parsed alignments with the FASTA for each genome
     // For each alignment, extract the sequence of the aligned region
     extractAlignments(
-        joined_fasta_ch.join(
+        validateFASTA.out.join(
             parseAlignments.out.map {
                 r -> [r.name.replaceAll(/.csv.gz/, ""), r]
             }
@@ -294,7 +300,7 @@ workflow {
             ]
         }.unique( // Drop duplicate entries
         ).join( // Add the genomes
-            joined_fasta_ch
+            validateFASTA.out
         )
 
         // Annotate these genomes with prokka

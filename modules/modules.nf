@@ -192,6 +192,62 @@ print("Done")
 """
 }
 
+// Validate the input FASTA file format
+process validateFASTA {
+    container "${params.container__biopython}"
+    label 'io_limited'
+    errorStrategy "retry"
+
+    input:
+        tuple val(uuid), val(genome_name), path(fasta_gz)
+    
+    output:
+        tuple val(uuid), val(genome_name), path("${fasta_gz}.validated.fasta.gz")
+    
+"""
+#!/usr/bin/env python3
+
+import gzip
+from Bio.SeqIO.FastaIO import SimpleFastaParser
+
+# Define the file paths, input and output
+fp_in = "${fasta_gz}"
+fp_out = "${fasta_gz}.validated.fasta.gz"
+
+# Define a counter for each unique header sequence
+counter = {}
+
+# Open the input and output files
+with gzip.open(fp_in, "rt") as i, gzip.open(fp_out, "wt") as o:
+
+    # Iterate over each input sequence
+    for header, seq in SimpleFastaParser(handle_in):
+
+        # Truncate the header
+        if len(header) > 25:
+            header = header[:25]
+
+        # Get the counter value for this header string
+        i = counter.get(header, 0)
+
+        # If the counter is greater than 0, add it to the output
+        if i > 0:
+            o.write(">%s.%d\\n%s\\n" % (header, i, seq))
+        # Otherwise
+        else:
+            # Just write the header and sequence
+            o.write(">%s\\n%s\\n" % (header, seq))
+
+        print("Wrote out %d nucleotides for %s" % (len(seq), header))
+
+        # Increment the counter
+        counter[header] = i + 1
+
+print("Done")
+
+"""
+}
+
 // Make a results summary PDF
 process summaryPDF {
     tag "Process final results"
@@ -232,7 +288,7 @@ process prokka {
 set -euxo pipefail
 
 echo Decompressing input file
-gunzip -c "${fasta}" | sed 's/[^>0-9A-Za-z]/_/g' | awk '{if(substr(\$0, 0, 1) == ">"){print(substr(\$0, 0, 20))}else{print(\$0)}}' > INPUT.fasta
+gunzip -c "${fasta}" > INPUT.fasta
 
 echo Running Prokka
 
