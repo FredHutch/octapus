@@ -19,6 +19,7 @@ container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.4"
 
 // Import modules
 include {
+    validateFASTA;
     prokka;
     extractGBK;
     clinker;
