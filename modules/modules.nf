@@ -221,7 +221,7 @@ counter = {}
 with gzip.open(fp_in, "rt") as i, gzip.open(fp_out, "wt") as o:
 
     # Iterate over each input sequence
-    for header, seq in SimpleFastaParser(handle_in):
+    for header, seq in SimpleFastaParser(i):
 
         # Truncate the header
         if len(header) > 25:
