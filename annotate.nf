@@ -130,6 +130,11 @@ workflow {
         }
     )
 
+    // Process all FASTA inputs to make sure that their format is valid
+    validateFASTA(
+        joined_fasta_ch
+    )
+
     // Parse the BOFFO outputs provided by the user
     parse_spreadsheet(
         Channel.fromPath(
@@ -149,7 +154,7 @@ workflow {
         ]
     }.unique( // Drop duplicate entries
     ).join( // Add the genomes
-        joined_fasta_ch
+        validateFASTA.out
     )
 
     // Annotate these genomes with prokka
