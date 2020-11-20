@@ -273,7 +273,7 @@ make_summary_figures.py "${results_csv_gz}" "${params.output_prefix}.pdf"
 
 // Annotate a genome with Prokka
 process prokka {
-    container "staphb/prokka:latest"
+    container "staphb/prokka:1.14.0-cv2"
     label "mem_medium"
     errorStrategy 'retry'
 
