@@ -224,8 +224,8 @@ with gzip.open(fp_in, "rt") as i, gzip.open(fp_out, "wt") as o:
     for header, seq in SimpleFastaParser(i):
 
         # Truncate the header
-        if len(header) > 25:
-            header = header[:25]
+        if len(header) > 20:
+            header = header[:20]
 
         # Get the counter value for this header string
         i = counter.get(header, 0)
