@@ -345,6 +345,7 @@ process clinker {
 set -Eeuxo pipefail
 
 OUTPUT=\$(echo "${operon_context.replaceAll(/ :: /, '_')}" | sed 's/ (+)/_FWD/g' | sed 's/ (-)/_REV/g')
+
 echo \$OUTPUT
 
 ls -lahtr
