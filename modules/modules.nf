@@ -347,7 +347,7 @@ echo \$OUTPUT
 
 ls -lahtr
 
-clinker *gbk --webpage \$OUTPUT.html
+clinker *gbk -p \$OUTPUT.html
 
 """
 
