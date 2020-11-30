@@ -342,12 +342,14 @@ process clinker {
 
 """#!/bin/bash
 
+set -Eeuxo pipefail
+
 OUTPUT=\$(echo "${operon_context.replaceAll(/ :: /, '_')}" | sed 's/ (+)/_FWD/g' | sed 's/ (-)/_REV/g')
 echo \$OUTPUT
 
 ls -lahtr
 
-clinker *gbk -p \$OUTPUT.html
+clinker -p \$OUTPUT.html *gbk
 
 """
 
