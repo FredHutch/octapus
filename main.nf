@@ -309,22 +309,32 @@ workflow {
         )
 
         // Make a channel with each unique operon per genome and contig
-        annotation_ch = collectFinalResults.out.map {
-            r -> r.splitCsv(
-                header: true
+        // Combine the operon coordinates with the genome files
+        annotation_ch = prokka.out.cross(
+            collectFinalResults.out.map {
+                r -> r.splitCsv(
+                    header: true
+                )
+            }.flatten(
+            ).map { // Just keep the genome ID across all hits
+                r -> [
+                    r["genome_id"],
+                    r["operon_context"],
+                    r["operon_ix"],
+                    r["contig_name"],
+                ]
+            }.unique( // Drop duplicate entries
             )
-        }.flatten(
-        ).map { // Just keep the genome ID across all hits
-            r -> [
-                r["genome_id"],
-                r["operon_context"],
-                r["operon_ix"],
-                r["contig_name"],
+        ).map {
+            i -> [
+                i[0][0],
+                i[1][1],
+                i[1][2],
+                i[1][3],
+                i[0][1],
+                i[0][2]
             ]
-        }.unique( // Drop duplicate entries
-        ).join( // Add the genomes
-            prokka.out
-        )
+        }
 
         // Extract the regions of the GBK files which operons fall into
         extractGBK(
