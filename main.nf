@@ -347,7 +347,7 @@ workflow {
         clinker(
             extractGBK.out.groupTuple(
             ).filter({
-                it[1].size() > 1
+                it -> it[1].size() > 1
             })
         )
         
