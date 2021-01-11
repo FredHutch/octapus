@@ -9,16 +9,16 @@ params.output_folder = false
 params.output_prefix = false
 params.csv_list = false
 
-// Import modules
-include summaryPDF from './modules/modules' params(
-    output_prefix: params.output_prefix,
-    output_folder: params.output_folder,
-)
-
 // Docker containers reused across processes
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
 
+// Import modules
+include summaryPDF from './modules/modules' params(
+    output_prefix: params.output_prefix,
+    output_folder: params.output_folder,
+    container__plotting: container__plotting
+)
 
 // Function which prints help message text
 def helpMessage() {
