@@ -342,9 +342,13 @@ workflow {
             collectFinalResults.out
         )
 
-        // Make a clinker webpage for each operon context
+        // Make a clinker webpage for each operon context,
+        // filtering to those operon contexts which contain > 1 representative
         clinker(
-            extractGBK.out.groupTuple()
+            extractGBK.out.groupTuple(
+            ).filter({
+                it[1].size() > 1
+            })
         )
         
     }
