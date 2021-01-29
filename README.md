@@ -1,6 +1,6 @@
 # Bacterial Operon Finder for Functional Organization
 
-Tool to find search bacterial genomes for candidate operons
+Tool to search bacterial genomes for candidate operons
 
 ## Goal
 
@@ -29,6 +29,24 @@ The CSV table of genomes to query can be obtained from the [NCBI Genome Portal](
 This portal allows you to filter to your organisms of interest and
 download a summary of those genomes as a CSV table. That is the file
 which can be used as an input to BOFFO.
+
+## Narrative Summary
+
+BOFFO is a tool that can be used to identify when a set of query genes are located in adjacent
+positions across a set of reference genomes. In the first step of analysis,
+BOFFO aligns a set of amino acid query sequences against a set of reference
+genomes. When a single query sequence is provided per-gene, the alignment is
+performed using tBLASTn. When multiple query sequences are provided per-gene,
+a position-specific scoring matrix (PSSM) is created with psiBLAST, and that
+PSSM is aligned against the reference genomes using tBLASTn.
+
+After aligning all query genes, BOFFO will identify when any combination of
+genes are found in adjacent positions (within a fixed nucleotide distance).
+Those groups of genes are summarized by membership (which genes are next to
+each other) and orientation (their relative position on the forward and
+reverse strands of the reference genome). As an optional visualization step,
+the groups of co-located genes which contain the same operon structure are
+visualized using the [clinker](https://github.com/gamcil/clinker) tool.
 
 ## Usage
 
