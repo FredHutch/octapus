@@ -15,7 +15,7 @@ params.ftp_threads = 100
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
 container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
-container__clinker = "quay.io/fhcrc-microbiome/clinker:latest"
+container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.16"
 
 // Import modules
 include {
