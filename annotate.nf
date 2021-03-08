@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 // Using DSL-2
-nextflow.preview.dsl=2
+nextflow.enable.dsl=2
 
 // Set default parameters
 params.help = false
@@ -15,7 +15,7 @@ params.ftp_threads = 100
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
 container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
-container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.16"
+container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.16--1"
 
 // Import modules
 include {
