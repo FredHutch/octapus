@@ -25,6 +25,8 @@ operon_df = operon_df.query(
     "operon_context == '${operon_context}'"
 ).query(
     "operon_ix == '${operon_ix}'"
+).apply(
+    lambda c: c.apply(str) if c.name == "gene_name" else c
 )
 
 # Get the smallest and largest coordinate
