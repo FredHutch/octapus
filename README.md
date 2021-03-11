@@ -30,6 +30,8 @@ This portal allows you to filter to your organisms of interest and
 download a summary of those genomes as a CSV table. That is the file
 which can be used as an input to BOFFO.
 
+NOTE: All gene names in the FASTA input file must contain letters (cannot entirely consist of numbers)
+
 ## Narrative Summary
 
 BOFFO is a tool that can be used to identify when a set of query genes are located in adjacent
