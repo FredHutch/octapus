@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NXF_ANSI_LOG: 0
-      NXF_VER: 20.04.1
+      NXF_VER: 20.10.0
     steps:
       - uses: actions/checkout@v1
       - name: Install Nextflow
@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NXF_ANSI_LOG: 0
-      NXF_VER: 20.04.1
+      NXF_VER: 20.10.0
     steps:
       - uses: actions/checkout@v1
       - name: Install Nextflow
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NXF_ANSI_LOG: 0
-      NXF_VER: 20.04.1
+      NXF_VER: 20.10.0
     steps:
       - uses: actions/checkout@v1
       - name: Install Nextflow
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NXF_ANSI_LOG: 0
-      NXF_VER: 20.04.1
+      NXF_VER: 20.10.0
     steps:
       - uses: actions/checkout@v1
       - name: Install Nextflow
