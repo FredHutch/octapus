@@ -321,6 +321,7 @@ process extractGBK {
     
     output:
         tuple val(operon_context), path("*/gbk/*gbk")
+        path "*/faa/*faa.gz", optional: true
 
     script:
         template 'extractGBK.py'
@@ -383,6 +384,58 @@ wget --quiet -O ${uuid}.fasta.gz ${ftp_prefix}/${uuid}_genomic.fna.gz
 
 # Make sure the file is gzip compressed
 (gzip -t ${uuid}.fasta.gz && echo "${uuid}.fasta.gz is in gzip format") || ( echo "${uuid}.fasta.gz is NOT in gzip format" && exit 1 )
+
+"""
+}
+
+process linclust {
+    tag "Cluster genes with similar sequences"
+    container "${params.container__mmseqs}"
+    label 'mem_medium'
+    publishDir "${params.output_folder}/clusters/", mode: 'copy', overwrite: true
+    
+    input:
+    file "input.genes.*.fasta.gz"
+    
+    output:
+    file "clustered.genes.fasta.gz"
+    file "clustered.genes.assignments.tsv.gz"
+    file "clustered.genes.counts.tsv.gz"
+    
+"""
+#!/bin/bash
+
+set -Eeuo pipefail
+
+# Combine input files
+echo "Combining input files"
+cat input.genes.* > input.genes.fasta.gz
+
+# Make the MMSeqs2 database
+echo "Running linclust"
+mmseqs createdb input.genes.fasta.gz db
+
+# Cluster the protein sequences
+mmseqs linclust db cluster_db ./ \
+    --min-seq-id ${params.cluster_identity / 100} \
+    -c ${params.cluster_coverage / 100}
+
+# Get the representative sequences
+mmseqs result2repseq db cluster_db genes
+mmseqs result2flat db db genes clustered.genes.fasta --use-fasta-header
+
+# Get the assignment of genes to clusters
+mmseqs createtsv db db cluster_db clustered.genes.assignments.tsv
+
+# Count up the number of times each representative was found
+cat clustered.genes.assignments.tsv | cut -f 1 | sort | uniq -c | sort -nrk1 > clustered.genes.counts.tsv
+
+echo "Compressing"
+gzip clustered.genes.fasta
+gzip clustered.genes.assignments.tsv
+gzip clustered.genes.counts.tsv
+
+echo "Done"
 
 """
 }

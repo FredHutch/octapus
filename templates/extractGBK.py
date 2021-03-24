@@ -105,12 +105,14 @@ operon_folder = "${operon_context}".replace(
 os.mkdir(operon_folder)
 os.mkdir(os.path.join(operon_folder, "gbk"))
 
-# Define the output file name
+# Define the output file name for the GBK file
 output_fp = os.path.join(
     operon_folder,
     "gbk",
     "${genome_id}-${contig_name}-${operon_ix}.gbk"
 )
+
+# Write out the GBK file
 print("Writing out to %s" % output_fp)
 with open(output_fp, "wt") as handle:
     SeqIO.write(
@@ -118,3 +120,37 @@ with open(output_fp, "wt") as handle:
         handle,
         "genbank"
     )
+
+# Define the output file name for the FAA file
+os.mkdir(os.path.join(operon_folder, "faa"))
+output_fp = os.path.join(
+    operon_folder,
+    "faa",
+    "${genome_id}-${contig_name}-${operon_ix}.faa.gz"
+)
+
+# Get the amino acid sequences
+aa_seqs = {
+    seq_feature.qualifiers['locus_tag'][0]: seq_feature.qualifiers['translation'][0]
+    # Iterate over each record
+    for seq_record in recs
+    # Iterate over each feature
+    for seq_feature in seq_record.features
+    # If the feature is a coding sequence
+    if seq_feature.type=="CDS"
+    # Make sure that there is a translation
+    if len(seq_feature.qualifiers['translation']) == 1
+}
+
+# If there are any amino acids in this file
+if len(aa_seqs) > 0:
+
+    # Write out the FAA file
+    print("Writing out to %s" % output_fp)
+    with gzip.open(output_fp, "wt") as handle:
+
+        # Iterate over each sequence
+        for header, seq in aa_seqs.items():
+
+            # Write out the translated coding sequence
+            handle.write(">%s\\n%s\\n" % (header, seq))

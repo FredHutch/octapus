@@ -18,6 +18,8 @@ params.ftp_threads = 100
 params.max_evalue = 0.001
 params.annotations = false
 params.annotation_window = 10000
+params.cluster_identity = 80
+params.cluster_coverage = 50
 
 
 // Docker containers reused across processes
@@ -25,6 +27,7 @@ container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
 container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
 container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.16--1"
+container__mmseqs = "quay.io/fhcrc-microbiome/mmseqs2:version-12"
 
 // Import modules
 include {
@@ -36,6 +39,7 @@ include {
     summaryPDF;
     prokka;
     extractGBK;
+    linclust;
     clinker;
     sanitize_manifest;
 } from './modules/modules' params(
@@ -43,10 +47,13 @@ include {
     output_folder: params.output_folder,
     ftp_threads: params.ftp_threads,
     annotation_window: params.annotation_window,
+    cluster_identity: params.cluster_identity,
+    cluster_coverage: params.cluster_coverage,
     container__pandas: container__pandas,
     container__plotting: container__plotting,
     container__biopython: container__biopython,
     container__clinker: container__clinker,
+    container__mmseqs: container__mmseqs,
 )
 
 // Function which prints help message text
@@ -71,6 +78,8 @@ def helpMessage() {
       --max_evalue          Maximum E-value threshold used to filter initial alignments (default: 0.001)
       --annotations         If specified, annotate the regions of all genomes which contain operons
       --annotation_window   The additional area on either side of the operon to annotate (in bp) (default: 10000)
+      --cluster_identity    Percent similarity used to cluster adjacent genes (default: 80)
+      --cluster_coverage    Percent coverage used to cluster adjacent genes (default: 50)
 
     Operon List Input:
 
@@ -345,10 +354,15 @@ workflow {
         // Make a clinker webpage for each operon context,
         // filtering to those operon contexts which contain > 1 representative
         clinker(
-            extractGBK.out.groupTuple(
+            extractGBK.out[0].groupTuple(
             ).filter({
                 it -> it[1].size() > 1
             })
+        )
+
+        // Cluster all of the adjacent genes by amino acid similarity
+        linclust(
+            extractGBK.out[1].flatten().toSortedList()
         )
         
     }
