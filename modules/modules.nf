@@ -430,3 +430,31 @@ echo "Done"
 
 """
 }
+
+process mashtree {
+    container "${params.container__mashtree}"
+    label 'mem_medium'
+    publishDir "${params.output_folder}/tree/", mode: 'copy', overwrite: true
+    
+    input:
+    file "*"
+    
+    output:
+    file "mashtree.dnd"
+    file "mashtree.tsv"
+    
+"""
+#!/bin/bash
+
+set -Eeuo pipefail
+
+# Decompress the genome FASTA files
+for f in *validated.fasta.gz; do
+    gunzip -c \$f > \${f%.gz}
+done
+
+# Run mashtree
+mashtree --outmatrix mashtree.tsv --numcpus ${task.cpus} *validated.fasta > mashtree.dnd
+
+"""
+}
