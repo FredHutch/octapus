@@ -2,7 +2,6 @@
 process sanitize_manifest {
     container "${params.container__pandas}"
     label 'io_limited'
-    errorStrategy "retry"
 
     input:
         path "raw.manifest.csv"
@@ -54,7 +53,6 @@ process collectResults {
     
     container "${params.container__pandas}"
     label 'io_limited'
-    errorStrategy "retry"
 
     input:
         file "input/*"
@@ -141,7 +139,6 @@ process collectFinalResults {
     container "${params.container__pandas}"
     label 'io_limited'
     publishDir "${params.output_folder}", mode: "copy", overwrite: true
-    errorStrategy "retry"
 
     input:
         file "input/*"
@@ -196,7 +193,6 @@ print("Done")
 process validateFASTA {
     container "${params.container__biopython}"
     label 'io_limited'
-    errorStrategy "retry"
 
     input:
         tuple val(uuid), val(genome_name), path(fasta_gz)
@@ -253,7 +249,6 @@ process summaryPDF {
     tag "Process final results"
     container "${params.container__plotting}"
     label 'io_limited'
-    errorStrategy "retry"
     publishDir "${params.output_folder}", mode: "copy", overwrite: true
 
     input:
@@ -275,7 +270,6 @@ make_summary_figures.py "${results_csv_gz}" "${params.output_prefix}.pdf"
 process prokka {
     container "staphb/prokka:1.14.0-cv2"
     label "mem_medium"
-    errorStrategy 'retry'
 
     input:
     tuple val(genome_id), val(genome_name), file(fasta)
@@ -312,7 +306,6 @@ echo Done
 process extractGBK {
     container "${params.container__biopython}"
     label 'io_limited'
-    errorStrategy "retry"
     publishDir params.output_folder, mode: 'copy', overwrite: true
 
     input:
@@ -332,7 +325,6 @@ process extractGBK {
 process clinker {
     container "${params.container__clinker}"
     label 'mem_medium'
-    errorStrategy "retry"
     publishDir "${params.output_folder}/html/", mode: 'copy', overwrite: true
 
     input:
@@ -364,7 +356,6 @@ process fetchFTP {
     tag "Download NCBI genomes by FTP"
     container 'quay.io/fhcrc-microbiome/wget:latest'
     label 'io_limited'
-    errorStrategy "retry"
     maxForks params.ftp_threads
 
     input:
