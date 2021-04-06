@@ -28,6 +28,7 @@ container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
 container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
 container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.16--1"
 container__mmseqs = "quay.io/fhcrc-microbiome/mmseqs2:version-12"
+container__mashtree = "quay.io/hdc-workflows/mashtree:1.2.0"
 
 // Import modules
 include {
@@ -42,6 +43,7 @@ include {
     linclust;
     clinker;
     sanitize_manifest;
+    mashtree;
 } from './modules/modules' params(
     output_prefix: params.output_prefix,
     output_folder: params.output_folder,
@@ -54,6 +56,7 @@ include {
     container__biopython: container__biopython,
     container__clinker: container__clinker,
     container__mmseqs: container__mmseqs,
+    container__mashtree: container__mashtree,
 )
 
 // Function which prints help message text
@@ -206,6 +209,13 @@ workflow {
     // Process all FASTA inputs to make sure that their format is valid
     validateFASTA(
         joined_fasta_ch
+    )
+
+    // Create a tree summarizing whole-genome similarity
+    mashtree(
+        validateFASTA.out.map({
+            it -> it[2]
+        }).toSortedList()
     )
 
     // Each gene in the operon is represented by a single sequence in a
