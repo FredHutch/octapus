@@ -2,3 +2,6 @@
 work/
 output/
 *.code-workspace
+app/venv/
+app/boffo_downloads/
+.DS_Store
