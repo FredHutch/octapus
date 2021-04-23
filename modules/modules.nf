@@ -198,7 +198,7 @@ process validateFASTA {
         tuple val(uuid), val(genome_name), path(fasta_gz)
     
     output:
-        tuple val(uuid), val(genome_name), path("${fasta_gz}.validated.fasta.gz")
+        tuple val(uuid), val(genome_name), path("${uuid}.validated.fasta.gz")
     
 """
 #!/usr/bin/env python3
@@ -208,7 +208,7 @@ from Bio.SeqIO.FastaIO import SimpleFastaParser
 
 # Define the file paths, input and output
 fp_in = "${fasta_gz}"
-fp_out = "${fasta_gz}.validated.fasta.gz"
+fp_out = "${uuid}.validated.fasta.gz"
 
 # Define a counter for each unique header sequence
 counter = {}
