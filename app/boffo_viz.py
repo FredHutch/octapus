@@ -201,7 +201,7 @@ else:
 # If the user provided an additional names file
 if args.names is not None:
 
-    print(f"User provided names in {args.names}")
+    logger.info(f"User provided names in {args.names}")
 
     # And that file is present
     if os.path.exists(args.names):
@@ -231,7 +231,7 @@ if args.names is not None:
                 ] = r["#Organism Name"]
 
     else:
-        print(f"File not found: {args.names}")
+        logger.info(f"File not found: {args.names}")
 
 # Get the list of all operons
 operon_list = operons.assign(
@@ -287,7 +287,7 @@ app.title = "Bacterial Operon Finder for Functional Organization"
 ######################
 
 # Folder used to host files
-DOWNLOAD_DIR = "./boffo_downloads/"
+DOWNLOAD_DIR = os.path.join(os.getcwd(), "boffo_downloads")
 if not os.path.exists(DOWNLOAD_DIR):
     os.mkdir(DOWNLOAD_DIR)
 
@@ -295,7 +295,7 @@ if not os.path.exists(DOWNLOAD_DIR):
 @server.route("/download/<path:path>")
 def download(path):
     """Serve a file from the download directory."""
-    print(path)
+    logger.info(path)
     return send_file(os.path.join(DOWNLOAD_DIR, path), as_attachment=True)
 
 #####################
@@ -747,6 +747,8 @@ def download_plot_callback(
     download_clicks, make_pdf_clicks, input_list
 ):
 
+    logger.info("download_plot_callback")
+
     # Get the callback context in order to parse the inputs' IDs
     ctx = dash.callback_context
 
@@ -791,15 +793,20 @@ def download_plot_callback(
         # Make a random string for the download
         pdf_fn = f"{str(uuid4())[:8]}.pdf"
 
-        print(pdf_fn)
+        logger.info(pdf_fn)
 
         # Save it to a PDF
         try:
-            fig.write_image(
-                os.path.join(
-                    DOWNLOAD_DIR, pdf_fn
-                )
-            )
+
+            # Set up the path to the image
+            img_path = os.path.join(DOWNLOAD_DIR, pdf_fn)
+
+            # Write the image
+            fig.write_image(img_path)
+
+            # Make sure that it exists
+            assert os.path.exists(img_path)
+
         # If there is an error
         except Exception as e:
 
