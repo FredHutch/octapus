@@ -817,9 +817,13 @@ process formatFASTA {
 """
 #!/usr/bin/env python3
 
+from collections import defaultdict
 import gzip
 import os
 import pandas as pd
+
+# We must limit the length of each file name to 200 characters
+file_prefix_max_len = 200
 
 # Read in all of the results for this dataset
 df = pd.read_csv("${results_csv_gz}")
@@ -846,9 +850,32 @@ for operon_structure, operon_df in df.groupby("operon_context"):
     os.mkdir(operon_folder)
     os.mkdir(os.path.join(operon_folder, "seq"))
 
+    # We must limit the length of each file name to 200 characters
+    file_prefix_counter = defaultdict(int)
+
     # For each gene, make a FASTA file with the nucleotide sequence
     for gene_name, gene_df in df.groupby("gene_name"):
-        with gzip.open("%s/seq/%s.alignments.fasta.gz" % (operon_folder, gene_name), "wt") as fo:
+
+        # Format the file name prefix
+        file_prefix = "%s/seq/%s.alignments" % (operon_folder, gene_name)
+
+        # If the file prefix is longer than the maximum length
+        if len(file_prefix) > file_prefix_max_len:
+
+            # Truncate down to the maximum length
+            file_prefix = file_prefix[:file_prefix_max_len]
+
+        # Add the file prefix to the counter
+        file_prefix_counter[file_prefix] += 1
+
+        # If there is more than one of these file prefixes
+        if file_prefix_counter[file_prefix] > 1:
+
+            # Then add the counter to the file prefix
+            file_prefix = "%s_%s" % (file_prefix, file_prefix_counter[file_prefix])
+
+        # Write out the nucleotide sequences
+        with gzip.open("%s.fasta.gz" % file_prefix, "wt") as fo:
             fo.write("\\n".join([
                 ">%s::%s::%s::%s-%s\\n%s" % (
                     r["genome_id"], 
@@ -862,7 +889,7 @@ for operon_structure, operon_df in df.groupby("operon_context"):
             ]))
 
         # Also write out the translated sequence
-        with gzip.open("%s/seq/%s.alignments.fastp.gz" % (operon_folder, gene_name), "wt") as fo:
+        with gzip.open("%s.fastp.gz" % file_prefix, "wt") as fo:
             fo.write("\\n".join([
                 ">%s::%s::%s::%s-%s\\n%s" % (
                     r["genome_id"], 
