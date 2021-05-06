@@ -325,6 +325,7 @@ def parameter_form(
     selector_type="radio",
     min_val=None,
     max_val=None,
+    suffix="",
     step=1
 ):
 
@@ -353,14 +354,17 @@ def parameter_form(
     # If the element is a slider
     elif selector_type == "slider":
 
+        # Mark the middle value
+        mid_val = min_val + ((max_val - min_val) / 2.)
+
         selector = dcc.Slider(
             min=min_val,
             max=max_val,
             value=value,
-            marks={x: str(x) for x in [
-                min_val, 
-                int((max_val - min_val) / 2), 
-                max_val
+            marks={x: f"{x}{suffix}" for x in [
+                int(min_val) if min_val == int(min_val) else min_val, 
+                int(mid_val) if mid_val == int(mid_val) else mid_val, 
+                int(max_val) if max_val == int(max_val) else max_val
             ]},
             step=step,
             id=elem_dict,
@@ -426,10 +430,20 @@ param_list = [
         value=True
     ),
     dict(
+        name="Minimum Alignment Identity",
+        elem_id="min_iden",
+        selector_type="slider",
+        min_val=50,
+        max_val=100,
+        value=75,
+        step=0.1,
+        suffix="%"
+    ),
+    dict(
         name="Gene Table Width",
         elem_id="gene_table_width",
         selector_type="slider",
-        min_val=0.1,
+        min_val=0.01,
         max_val=1.0,
         value=0.5,
         step=0.01
@@ -441,7 +455,8 @@ param_list = [
         min_val=0,
         max_val=5,
         value=1,
-        step=0.1
+        step=0.1,
+        suffix="px"
     ),
     dict(
         name="Figure Height",
@@ -449,7 +464,8 @@ param_list = [
         selector_type="slider",
         min_val=400,
         max_val=1200,
-        value=600
+        value=600,
+        suffix="px"
     ),
     dict(
         name="Figure Width",
@@ -457,7 +473,8 @@ param_list = [
         selector_type="slider",
         min_val=400,
         max_val=1200,
-        value=800
+        value=800,
+        suffix="px"
     ),
 ]
 
@@ -929,7 +946,8 @@ class BOFFO_Plot:
         if self.params["show_genes"]:
 
             self.add_gene_heatmap(
-                color_by_ident=self.params["color_by_ident"]
+                color_by_ident=self.params["color_by_ident"],
+                min_iden=self.params["min_iden"]
             )
 
         # Finally, add the genome labels
@@ -1132,7 +1150,7 @@ class BOFFO_Plot:
             )
         ]
 
-    def add_gene_heatmap(self, color_by_ident=True):
+    def add_gene_heatmap(self, color_by_ident=True, min_iden=0):
 
         # Get the operon context to display
         operon_context = self.params["operon_context"]
@@ -1172,7 +1190,11 @@ class BOFFO_Plot:
                 "gene_end",
                 "gene_len",
             ]
-        )
+        ).loc[
+            operon_df["pct_iden"].apply(float) >= min_iden
+        ]
+
+        assert operon_df.shape[0] > 0, "No alignments pass the minimum identity filter"
 
         # Get the y position of every genome by id
         genome_y = dict(zip(self.ids, self.y_pos))
