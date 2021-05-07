@@ -823,10 +823,13 @@ import os
 import pandas as pd
 
 # We must limit the length of each file name to 200 characters
-file_prefix_max_len = 200
+folder_prefix_max_len = 200
 
 # Read in all of the results for this dataset
 df = pd.read_csv("${results_csv_gz}")
+
+# We must limit the length of each folder name to 200 characters
+folder_prefix_counter = defaultdict(int)
 
 # For each operon structure, make a folder
 for operon_structure, operon_df in df.groupby("operon_context"):
@@ -846,33 +849,30 @@ for operon_structure, operon_df in df.groupby("operon_context"):
         "__", "_"
     )
 
+    # If the file prefix is longer than the maximum length
+    if len(operon_folder) > folder_prefix_max_len:
+
+        # Truncate down to the maximum length
+        operon_folder = operon_folder[:folder_prefix_max_len]
+
+    # Add the file prefix to the counter
+    folder_prefix_counter[operon_folder] += 1
+
+    # If there is more than one of these file prefixes
+    if folder_prefix_counter[operon_folder] > 1:
+
+        # Then add the counter to the file prefix
+        operon_folder = "%s_%s" % (operon_folder, folder_prefix_counter[operon_folder])
+
     print("Writing out %d sequences for %s" % (operon_df.shape[0], operon_structure))
     os.mkdir(operon_folder)
     os.mkdir(os.path.join(operon_folder, "seq"))
-
-    # We must limit the length of each file name to 200 characters
-    file_prefix_counter = defaultdict(int)
 
     # For each gene, make a FASTA file with the nucleotide sequence
     for gene_name, gene_df in df.groupby("gene_name"):
 
         # Format the file name prefix
         file_prefix = "%s/seq/%s.alignments" % (operon_folder, gene_name)
-
-        # If the file prefix is longer than the maximum length
-        if len(file_prefix) > file_prefix_max_len:
-
-            # Truncate down to the maximum length
-            file_prefix = file_prefix[:file_prefix_max_len]
-
-        # Add the file prefix to the counter
-        file_prefix_counter[file_prefix] += 1
-
-        # If there is more than one of these file prefixes
-        if file_prefix_counter[file_prefix] > 1:
-
-            # Then add the counter to the file prefix
-            file_prefix = "%s_%s" % (file_prefix, file_prefix_counter[file_prefix])
 
         # Write out the nucleotide sequences
         with gzip.open("%s.fasta.gz" % file_prefix, "wt") as fo:
