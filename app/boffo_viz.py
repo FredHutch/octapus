@@ -211,24 +211,43 @@ if args.names is not None:
 
         # Select the columns for #Organism Name and uri
         names_df = names_df.reindex(
-            columns=["#Organism Name", "uri"]
+            columns=["#Organism Name", "uri", "GenBank FTP"]
         )
 
         # Iterate over each line
         for _, r in names_df.iterrows():
 
-            # If there are missing entries for either column
-            if pd.isnull(r["#Organism Name"]) or pd.isnull(r["uri"]):
+            # If there is no entry for the organism name
+            if pd.isnull(r["#Organism Name"]):
 
                 # Skip the row
                 continue
 
+            # Otherwise, set the organism name from that column
+            r_org_name = r["#Organism Name"]
+
+            # If there is no entry for the uri
+            if pd.isnull(r["uri"]):
+
+                # And there is no entry for the GenBank FTP
+                if pd.isnull(r["GenBank FTP"]):
+
+                    # Then skip the row
+                    continue
+
+                # Otherwise, there is no uri but there is a GenBank FTP
+                else:
+
+                    r_org_id = r["GenBank FTP"].rsplit("/", 1)[-1]
+
+            # Otherwise, there is a URI
             else:
 
-                # Add this name to the dict
-                genome_name_dict[
-                    r["uri"].split("/")[-1]
-                ] = r["#Organism Name"]
+                # Parse the ID from the URI
+                r_org_id = r["uri"].split("/")[-1]
+
+            # Add this name to the dict
+            genome_name_dict[r_org_id] = r_org_name
 
     else:
         logger.info(f"File not found: {args.names}")
