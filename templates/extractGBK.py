@@ -102,6 +102,13 @@ operon_folder = "${operon_context}".replace(
 ).replace(
     "__", "_"
 )
+
+# Make sure that the folder name is not too long
+max_folder_len = 200
+if len(operon_folder) > max_folder_len:
+    print("Folder name is too long -- trimming down to {} characters".format(max_folder_len))
+    operon_folder = operon_folder[:max_folder_len]
+
 os.mkdir(operon_folder)
 os.mkdir(os.path.join(operon_folder, "gbk"))
 
