@@ -459,6 +459,16 @@ param_list = [
         suffix="%"
     ),
     dict(
+        name="Minimum Alignment Coverage",
+        elem_id="min_cov",
+        selector_type="slider",
+        min_val=50,
+        max_val=100,
+        value=75,
+        step=0.1,
+        suffix="%"
+    ),
+    dict(
         name="Gene Table Width",
         elem_id="gene_table_width",
         selector_type="slider",
@@ -966,7 +976,8 @@ class BOFFO_Plot:
 
             self.add_gene_heatmap(
                 color_by_ident=self.params["color_by_ident"],
-                min_iden=self.params["min_iden"]
+                min_iden=self.params["min_iden"],
+                min_cov=self.params["min_cov"],
             )
 
         # Finally, add the genome labels
@@ -1169,7 +1180,7 @@ class BOFFO_Plot:
             )
         ]
 
-    def add_gene_heatmap(self, color_by_ident=True, min_iden=0):
+    def add_gene_heatmap(self, color_by_ident=True, min_iden=0, min_cov=0):
 
         # Get the operon context to display
         operon_context = self.params["operon_context"]
@@ -1209,8 +1220,16 @@ class BOFFO_Plot:
                 "gene_end",
                 "gene_len",
             ]
-        ).loc[
+        )
+        
+        # Filter by percent identity
+        operon_df = operon_df.loc[
             operon_df["pct_iden"].apply(float) >= min_iden
+        ]
+
+        # Filter by gene coverage
+        operon_df = operon_df.loc[
+            operon_df["gene_cov"].apply(float) >= min_cov
         ]
 
         assert operon_df.shape[0] > 0, "No alignments pass the minimum identity filter"
