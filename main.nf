@@ -35,7 +35,6 @@ include {
     collectResults as collectResultsRound1;
     collectResults as collectResultsRound2;
     collectFinalResults;
-    fetchFTP;
     validateFASTA;
     summaryPDF;
     prokka;
@@ -57,6 +56,15 @@ include {
     container__clinker: container__clinker,
     container__mmseqs: container__mmseqs,
     container__mashtree: container__mashtree,
+)
+
+// Import modules fetchFTP for genome FASTA files
+include {
+    fetchFTP;
+} from './modules/modules' params(
+    ftp_threads: params.ftp_threads,
+    ftp_suffix: "_genomic.fna.gz",
+    local_suffix: ".fasta.gz",
 )
 
 // Function which prints help message text

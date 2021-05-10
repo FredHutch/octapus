@@ -362,7 +362,7 @@ process fetchFTP {
         tuple val(uuid), val(genome_name), val(ftp_prefix)
     
     output:
-        tuple val(uuid), val(genome_name), file("${uuid}.fasta.gz")
+        tuple val(uuid), val(genome_name), file("${uuid}${local_suffix}")
     
 """
 #!/bin/bash
@@ -371,7 +371,7 @@ set -e
 
 echo "Downloading ${uuid} from ${ftp_prefix}"
 
-wget --quiet -O ${uuid}.fasta.gz ${ftp_prefix}/${uuid}_genomic.fna.gz
+wget --quiet -O ${uuid}${local_suffix} ${ftp_prefix}/${uuid}${ftp_suffix}
 
 # Make sure the file is gzip compressed
 (gzip -t ${uuid}.fasta.gz && echo "${uuid}.fasta.gz is in gzip format") || ( echo "${uuid}.fasta.gz is NOT in gzip format" && exit 1 )

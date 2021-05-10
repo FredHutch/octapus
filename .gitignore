@@ -5,3 +5,4 @@ output/
 app/venv/
 app/boffo_downloads/
 .DS_Store
+test_data/
