@@ -402,129 +402,147 @@ def parameter_form(
         ]
     )
 
+# Top level is a list of dicts
+# Each dict will be rendered as a tab, with a `label` and `options`
+# The `options` field is a list of dicts, ordered for each option
 param_list = [
     dict(
-        name="Color Tree By Operon Presence",
-        elem_id="color_by_operon",
+        label="Genome Options",
         options=[
-            dict(label="Yes", value=True),
-            dict(label="No", value=False),
-        ],
-        value=True,
+            dict(
+                name="Genome Label Size",
+                elem_id="genome_font_size",
+                selector_type="slider",
+                min_val=2,
+                max_val=20,
+                value=10,
+                step=0.1,
+                suffix="px"
+            ),
+            dict(
+                name="Line Thickness",
+                elem_id="line_width",
+                selector_type="slider",
+                min_val=0,
+                max_val=5,
+                value=1,
+                step=0.1,
+                suffix="px"
+            ),
+            dict(
+                name="Show Genome Names",
+                elem_id="genome_names",
+                options=[
+                    dict(label="Yes", value=True),
+                    dict(label="No", value=False),
+                ],
+                value=True,
+            ),
+            dict(
+                name="Show Genome IDs",
+                elem_id="genome_ids",
+                options=[
+                    dict(label="Yes", value=True),
+                    dict(label="No", value=False),
+                ],
+                value=False,
+            ),
+            dict(
+                name="Color Tree By Operon Presence",
+                elem_id="color_by_operon",
+                options=[
+                    dict(label="Yes", value=True),
+                    dict(label="No", value=False),
+                ],
+                value=True,
+            ),
+        ]
     ),
     dict(
-        name="Show Genome Names",
-        elem_id="genome_names",
+        label="Gene Options",
         options=[
-            dict(label="Yes", value=True),
-            dict(label="No", value=False),
-        ],
-        value=True,
+            dict(
+                name="Show Gene Table",
+                elem_id="show_genes",
+                options=[
+                    dict(label="Yes", value=True),
+                    dict(label="No", value=False),
+                ],
+                value=True
+            ),
+            dict(
+                name="Color Genes by Identity",
+                elem_id="color_by_ident",
+                options=[
+                    dict(label="Yes", value=True),
+                    dict(label="No", value=False),
+                ],
+                value=True
+            ),
+            dict(
+                name="Gene Table Width",
+                elem_id="gene_table_width",
+                selector_type="slider",
+                min_val=0.01,
+                max_val=1.0,
+                value=0.5,
+                step=0.01
+            ),
+            dict(
+                name="Gene Label Size",
+                elem_id="gene_font_size",
+                selector_type="slider",
+                min_val=2,
+                max_val=20,
+                value=10,
+                step=0.1,
+                suffix="px"
+            ),
+        ]
     ),
     dict(
-        name="Show Genome IDs",
-        elem_id="genome_ids",
+        label="Global Options",
         options=[
-            dict(label="Yes", value=True),
-            dict(label="No", value=False),
-        ],
-        value=False,
-    ),
-    dict(
-        name="Show Gene Table",
-        elem_id="show_genes",
-        options=[
-            dict(label="Yes", value=True),
-            dict(label="No", value=False),
-        ],
-        value=True
-    ),
-    dict(
-        name="Color Genes by Identity",
-        elem_id="color_by_ident",
-        options=[
-            dict(label="Yes", value=True),
-            dict(label="No", value=False),
-        ],
-        value=True
-    ),
-    dict(
-        name="Minimum Alignment Identity",
-        elem_id="min_iden",
-        selector_type="slider",
-        min_val=50,
-        max_val=100,
-        value=75,
-        step=0.1,
-        suffix="%"
-    ),
-    dict(
-        name="Minimum Alignment Coverage",
-        elem_id="min_cov",
-        selector_type="slider",
-        min_val=50,
-        max_val=100,
-        value=75,
-        step=0.1,
-        suffix="%"
-    ),
-    dict(
-        name="Gene Table Width",
-        elem_id="gene_table_width",
-        selector_type="slider",
-        min_val=0.01,
-        max_val=1.0,
-        value=0.5,
-        step=0.01
-    ),
-    dict(
-        name="Line Thickness",
-        elem_id="line_width",
-        selector_type="slider",
-        min_val=0,
-        max_val=5,
-        value=1,
-        step=0.1,
-        suffix="px"
-    ),
-    dict(
-        name="Gene Label Size",
-        elem_id="gene_font_size",
-        selector_type="slider",
-        min_val=2,
-        max_val=20,
-        value=10,
-        step=0.1,
-        suffix="px"
-    ),
-    dict(
-        name="Genome Label Size",
-        elem_id="genome_font_size",
-        selector_type="slider",
-        min_val=2,
-        max_val=20,
-        value=10,
-        step=0.1,
-        suffix="px"
-    ),
-    dict(
-        name="Figure Height",
-        elem_id="figure_height",
-        selector_type="slider",
-        min_val=400,
-        max_val=1200,
-        value=600,
-        suffix="px"
-    ),
-    dict(
-        name="Figure Width",
-        elem_id="figure_width",
-        selector_type="slider",
-        min_val=400,
-        max_val=1200,
-        value=800,
-        suffix="px"
-    ),
+            dict(
+                name="Minimum Alignment Identity",
+                elem_id="min_iden",
+                selector_type="slider",
+                min_val=50,
+                max_val=100,
+                value=75,
+                step=0.1,
+                suffix="%"
+            ),
+            dict(
+                name="Minimum Alignment Coverage",
+                elem_id="min_cov",
+                selector_type="slider",
+                min_val=50,
+                max_val=100,
+                value=75,
+                step=0.1,
+                suffix="%"
+            ),
+            dict(
+                name="Figure Height",
+                elem_id="figure_height",
+                selector_type="slider",
+                min_val=400,
+                max_val=1200,
+                value=600,
+                suffix="px"
+            ),
+            dict(
+                name="Figure Width",
+                elem_id="figure_width",
+                selector_type="slider",
+                min_val=400,
+                max_val=1200,
+                value=800,
+                suffix="px"
+            ),
+        ]
+    )
 ]
 
 # Function to split up a list
@@ -584,17 +602,28 @@ def custom_menu_collapse():
         dbc.Card(
             dbc.CardBody(
                 [
-                    dbc.Row(
+                    dbc.Tabs(
                         [
-                            dbc.Col(
-                                [
-                                    parameter_form(
-                                        **param
+                            dbc.Tab(
+                                dbc.Row(
+                                    [
+                                        dbc.Col(
+                                            [
+                                                parameter_form(
+                                                    **param
+                                                )
+                                                for param in param_sublist
+                                            ]
+                                        )
+                                        for param_sublist in split_list(param_tab["options"], 2)
+                                    ],
+                                    style=dict(
+                                        marginTop="25px"
                                     )
-                                    for param in param_sublist
-                                ]
+                                ),
+                                label=param_tab["label"],
                             )
-                            for param_sublist in split_list(param_list, 5)
+                            for param_tab in param_list
                         ]
                     )
                 ]
