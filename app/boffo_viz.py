@@ -488,6 +488,26 @@ param_list = [
         suffix="px"
     ),
     dict(
+        name="Gene Label Size",
+        elem_id="gene_font_size",
+        selector_type="slider",
+        min_val=2,
+        max_val=20,
+        value=10,
+        step=0.1,
+        suffix="px"
+    ),
+    dict(
+        name="Genome Label Size",
+        elem_id="genome_font_size",
+        selector_type="slider",
+        min_val=2,
+        max_val=20,
+        value=10,
+        step=0.1,
+        suffix="px"
+    ),
+    dict(
         name="Figure Height",
         elem_id="figure_height",
         selector_type="slider",
@@ -1153,7 +1173,8 @@ class BOFFO_Plot:
                 side="right",
                 tickmode = 'array',
                 tickvals = ytick_pos,
-                ticktext = ytick_label
+                ticktext = ytick_label,
+                tickfont_size = self.params["genome_font_size"],
             )
         )
 
@@ -1288,6 +1309,7 @@ class BOFFO_Plot:
                 tickvals = list(range(len(genes_in_operon))),
                 ticktext = genes_in_operon,
                 domain = [1 - self.params["gene_table_width"], 1],
+                tickfont_size=self.params["gene_font_size"],
             ),
             xaxis=dict(
                 domain = [0, 1 - self.params["gene_table_width"]],
