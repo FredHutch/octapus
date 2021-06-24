@@ -189,7 +189,7 @@ workflow {
 
     // Make a clinker webpage for each operon context
     clinker(
-        extractGBK.out.groupTuple().filter({
+        extractGBK.out[0].groupTuple().filter({
             it -> it[1].size() > 1
         })
     )
