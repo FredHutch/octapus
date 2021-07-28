@@ -6,7 +6,7 @@ nextflow.enable.dsl=2
 // Set default parameters
 params.help = false
 params.output_folder = false
-params.boffo_results = false
+params.octapus_results = false
 params.genomes = false
 params.annotation_window = 10000
 params.ftp_threads = 100
@@ -40,18 +40,18 @@ def helpMessage() {
     log.info"""
     Usage:
 
-    nextflow run FredHutch/BOFFO/annotate.nf <ARGUMENTS>
+    nextflow run FredHutch/OCTAPUS/annotate.nf <ARGUMENTS>
     
     Required Arguments:
       --genomes             CSV file listing genomes (from https://www.ncbi.nlm.nih.gov/genome/browse)
-      --boffo_results       Spreadsheet containing BOFFO outputs (in CSV format)
+      --octapus_results       Spreadsheet containing OCTAPUS outputs (in CSV format)
       --output_folder       Folder to write output files to
 
     Optional Arguments:
       --annotation_window   The additional area on either side of the operon to annotate (in bp) (default: 10000)
 
     
-    Given a set of BOFFO results (or a subset of just those results the user is particularly interested in),
+    Given a set of OCTAPUS results (or a subset of just those results the user is particularly interested in),
     this utility will extract the annotations from the surrounding region and generate an interactive
     visualization displaying the position and orientation of those genes, including ones which were
     not included in the original search.
@@ -70,7 +70,7 @@ def helpMessage() {
 workflow {
 
     // Show help message if the user specifies the --help flag at runtime
-    if (params.help || !params.genomes || !params.output_folder || !params.boffo_results){
+    if (params.help || !params.genomes || !params.output_folder || !params.octapus_results){
         // Invoke the function above which prints the help message
         helpMessage()
         // Exit out and do not run anything else
@@ -86,9 +86,9 @@ workflow {
     }
 
     // Make sure that the input files exist
-    if (file(params.boffo_results).isEmpty()){
+    if (file(params.octapus_results).isEmpty()){
         log.info"""
-        The specified --boffo_results file cannot be found!
+        The specified --octapus_results file cannot be found!
         """.stripIndent()
         exit 1
     }
@@ -136,10 +136,10 @@ workflow {
         joined_fasta_ch
     )
 
-    // Parse the BOFFO outputs provided by the user
+    // Parse the OCTAPUS outputs provided by the user
     parse_spreadsheet(
         Channel.fromPath(
-            params.boffo_results
+            params.octapus_results
         )
     )
 

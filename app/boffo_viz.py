@@ -27,9 +27,9 @@ from uuid import uuid4
 
 # Set the level of the logger to INFO
 logFormatter = logging.Formatter(
-    '%(asctime)s %(levelname)-8s [BOFFO] %(message)s'
+    '%(asctime)s %(levelname)-8s [OCTAPUS] %(message)s'
 )
-logger = logging.getLogger('BOFFO')
+logger = logging.getLogger('OCTAPUS')
 logger.setLevel(logging.INFO)
 
 # Write to STDOUT
@@ -43,7 +43,7 @@ logger.addHandler(consoleHandler)
 
 # Create the parser
 parser = argparse.ArgumentParser(
-    description='Visualize the results of the BOFFO analysis pipeline'
+    description='Visualize the results of the OCTAPUS analysis pipeline'
 )
 
 # Add the arguments
@@ -51,7 +51,7 @@ parser.add_argument(
     '--csv',
     type=str,
     required=True,
-    help='BOFFO output (*.csv.gz)'
+    help='OCTAPUS output (*.csv.gz)'
 )
 parser.add_argument(
     '--dnd',
@@ -642,7 +642,7 @@ app.layout = dbc.Container(
         dbc.Toast(
             "",
             id=toast_id,
-            header="BOFFO",
+            header="OCTAPUS",
             is_open=False,
             dismissable=True,
             icon="primary",
@@ -795,7 +795,7 @@ def render_plot_callback(
 
     # Try to render the plot, catching any errors
     try:
-        fig = BOFFO_Plot(
+        fig = OCTAPUS_Plot(
             input_values
         ).fig
 
@@ -873,7 +873,7 @@ def download_plot_callback(
 
         # Try to render the plot, catching any errors
         try:
-            fig = BOFFO_Plot(
+            fig = OCTAPUS_Plot(
                 input_values
             ).fig
 
@@ -990,7 +990,7 @@ def get_genome_operon_labels(operon_context):
     # Return the dict
     return output
 
-class BOFFO_Plot:
+class OCTAPUS_Plot:
     """Set up the main figure."""
     
     def __init__(
@@ -1349,7 +1349,7 @@ class BOFFO_Plot:
         )
 
     def format_hovertext(self, df):
-        """Given a list of BOFFO alignments, format the aggregate hovertext."""
+        """Given a list of OCTAPUS alignments, format the aggregate hovertext."""
 
         # Get the genome name
         genome_name = self.name_dict[df["genome_id"].values[0]]

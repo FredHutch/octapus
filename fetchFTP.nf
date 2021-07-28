@@ -17,7 +17,7 @@ def helpMessage() {
     log.info"""
     Usage:
 
-    nextflow run FredHutch/BOFFO/fetchFTP.nf <ARGUMENTS>
+    nextflow run FredHutch/OCTAPUS/fetchFTP.nf <ARGUMENTS>
     
     Required Arguments:
       --genomes             CSV file listing genomes (from https://www.ncbi.nlm.nih.gov/genome/browse)

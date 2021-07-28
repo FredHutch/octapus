@@ -72,7 +72,7 @@ def helpMessage() {
     log.info"""
     Usage:
 
-    nextflow run FredHutch/BOFFO <ARGUMENTS>
+    nextflow run FredHutch/OCTAPUS <ARGUMENTS>
     
     Required Arguments:
       --genomes             CSV file listing genomes (from https://www.ncbi.nlm.nih.gov/genome/browse)
@@ -116,7 +116,7 @@ def helpMessage() {
     executed, including the annotation of input genomes using Prokka and the comparison of those 
     genomes using clinker to form an interactive visualization (saved in the html/ output folder).
 
-    As an alternative approach, we suggest using the entrypoint 'FredHutch/BOFFO/annotate.nf',
+    As an alternative approach, we suggest using the entrypoint 'FredHutch/OCTAPUS/annotate.nf',
     which allows the user to annotate just a subset of the results from a set of BOFFO alignments.
 
 

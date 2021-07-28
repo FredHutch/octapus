@@ -15,7 +15,7 @@ jobs:
         run: |
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
-      - name:  Run BOFFO
+      - name:  Run OCTAPUS
         run: |
           nextflow run main.nf \
             --genomes test_data/genomes.csv \
@@ -36,7 +36,7 @@ jobs:
         run: |
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
-      - name:  Run BOFFO
+      - name:  Run OCTAPUS
         run: |
           nextflow run main.nf \
             --genomes test_data/genomes.csv \
@@ -57,7 +57,7 @@ jobs:
         run: |
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
-      - name:  Run BOFFO
+      - name:  Run OCTAPUS
         run: |
           nextflow run main.nf \
             --genomes test_data/SamyAB.genomes.csv \
@@ -80,7 +80,7 @@ jobs:
         run: |
           wget -qO- get.nextflow.io | bash
           sudo mv nextflow /usr/local/bin/
-      - name:  Run BOFFO batch 1
+      - name:  Run OCTAPUS batch 1
         run: |
           nextflow run main.nf \
             --genomes test_data/genomes.csv \
@@ -90,7 +90,7 @@ jobs:
             -profile testing \
             -work-dir work/ \
             -with-docker ubuntu:20.04
-      - name:  Run BOFFO batch 2
+      - name:  Run OCTAPUS batch 2
         run: |
           nextflow run main.nf \
             --genomes test_data/genomes.2.csv \

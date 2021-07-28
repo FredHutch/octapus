@@ -1,4 +1,6 @@
-# Bacterial Operon Finder for Functional Organization
+# Operon ConTextulization Across Prokaryotes to Uncover Synteny (OCTAPUS)
+
+Formerly: Bacterial Operon Finder for Functional Organization (BOFFO)
 
 Tool to search bacterial genomes for candidate operons
 
@@ -14,7 +16,7 @@ as well as their protein sequences.
 
 ## Approach
 
-Using a Nextflow framework, BOFFO will:
+Using a Nextflow framework, OCTAPUS will:
 
 - Align each query protein against each query genome using BLAST
 - Collect information for each genome
@@ -28,21 +30,21 @@ The input data will be:
 The CSV table of genomes to query can be obtained from the [NCBI Genome Portal](https://www.ncbi.nlm.nih.gov/genome/browse#!/overview/).
 This portal allows you to filter to your organisms of interest and
 download a summary of those genomes as a CSV table. That is the file
-which can be used as an input to BOFFO.
+which can be used as an input to OCTAPUS.
 
 NOTE: All gene names in the FASTA input file must contain letters (cannot entirely consist of numbers)
 
 ## Narrative Summary
 
-BOFFO is a tool that can be used to identify when a set of query genes are located in adjacent
+OCTAPUS is a tool that can be used to identify when a set of query genes are located in adjacent
 positions across a set of reference genomes. In the first step of analysis,
-BOFFO aligns a set of amino acid query sequences against a set of reference
+OCTAPUS aligns a set of amino acid query sequences against a set of reference
 genomes. When a single query sequence is provided per-gene, the alignment is
 performed using tBLASTn. When multiple query sequences are provided per-gene,
 a position-specific scoring matrix (PSSM) is created with psiBLAST, and that
 PSSM is aligned against the reference genomes using tBLASTn.
 
-After aligning all query genes, BOFFO will identify when any combination of
+After aligning all query genes, OCTAPUS will identify when any combination of
 genes are found in adjacent positions (within a fixed nucleotide distance).
 Those groups of genes are summarized by membership (which genes are next to
 each other) and orientation (their relative position on the forward and
@@ -55,7 +57,7 @@ visualized using the [clinker](https://github.com/gamcil/clinker) tool.
 ```
 Usage:
 
-nextflow run FredHutch/BOFFO <ARGUMENTS>
+nextflow run FredHutch/OCTAPUS <ARGUMENTS>
 
 Required Arguments:
   --genomes             CSV file listing genomes (from https://www.ncbi.nlm.nih.gov/genome/browse)
@@ -97,8 +99,8 @@ Note that including the --annotations flag will result in a larger amount of com
 executed, including the annotation of input genomes using Prokka and the comparison of those 
 genomes using clinker to form an interactive visualization (saved in the html/ output folder).
 
-As an alternative approach, we suggest using the entrypoint 'FredHutch/BOFFO/annotate.nf',
-which allows the user to annotate just a subset of the results from a set of BOFFO alignments.
+As an alternative approach, we suggest using the entrypoint 'FredHutch/OCTAPUS/annotate.nf',
+which allows the user to annotate just a subset of the results from a set of OCTAPUS alignments.
 
 
 Citations:

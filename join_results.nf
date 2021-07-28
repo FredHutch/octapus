@@ -25,7 +25,7 @@ def helpMessage() {
     log.info"""
     Usage:
 
-    nextflow run FredHutch/BOFFO/join_results.nf <ARGUMENTS>
+    nextflow run FredHutch/OCTAPUS/join_results.nf <ARGUMENTS>
     
     Required Arguments:
       --csv_list            Comma-separated list of CSV results files to join
