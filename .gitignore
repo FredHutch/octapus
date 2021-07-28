@@ -4,5 +4,6 @@ output/
 *.code-workspace
 app/venv/
 app/boffo_downloads/
+app/octapus_downloads/
 .DS_Store
 test_data/

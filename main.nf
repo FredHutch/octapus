@@ -117,7 +117,7 @@ def helpMessage() {
     genomes using clinker to form an interactive visualization (saved in the html/ output folder).
 
     As an alternative approach, we suggest using the entrypoint 'FredHutch/OCTAPUS/annotate.nf',
-    which allows the user to annotate just a subset of the results from a set of BOFFO alignments.
+    which allows the user to annotate just a subset of the results from a set of OCTAPUS alignments.
 
 
     Citations:
