@@ -24,15 +24,15 @@ Using a Nextflow framework, OCTAPUS will:
 
 The input data will be:
 
-- A multi-FASTA with the amino acid sequence of all genes in the operon
-- A CSV table listing the genomes from NCBI to query
+- A multi-FASTP with the amino acid sequence of all genes in the operon
+- A CSV table listing the genomes from NCBI to query _and/or_ a local set of genomes (that may not be in NCBI)
 
-The CSV table of genomes to query can be obtained from the [NCBI Genome Portal](https://www.ncbi.nlm.nih.gov/genome/browse#!/overview/).
-This portal allows you to filter to your organisms of interest and
-download a summary of those genomes as a CSV table. That is the file
-which can be used as an input to OCTAPUS.
+`--genomes` should point to the CSV table of genomes to query from NCBI.  At a minimum, there needs to be two columns: `#Organism Name`, `GenBank FTP`. Optionally there can be an `uri` column that points to a local cache on the filesystem.
+This CSV can be directly obtained from the [NCBI Genome Portal](https://www.ncbi.nlm.nih.gov/genome/browse#!/overview/). This portal allows you to filter to your organisms of interest and download a summary of those genomes as a CSV table. That is the file which can be used as an input to OCTAPUS.
 
-NOTE: All gene names in the FASTA input file must contain letters (cannot entirely consist of numbers)
+`--genomes_local` is a CSV table with a minimum of two columns: `Organism Name` and `path` (where the genome.fna.gz can be found on the filesystem). This is intended for genomes that may not be in genbank (i.e. locally generated, or from an alternative source like HumGut).
+
+NOTE: All gene names in the operon-gene FASTP input file must contain letters (cannot entirely consist of numbers)
 
 ## Narrative Summary
 
