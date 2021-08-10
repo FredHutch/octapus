@@ -21,7 +21,7 @@ params.annotations = false
 params.annotation_window = 10000
 params.cluster_identity = 80
 params.cluster_coverage = 50
-
+params.mashtree = false
 
 // Docker containers reused across processes
 container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
@@ -94,6 +94,7 @@ def helpMessage() {
       --max_operon_gap      Maximum gap between genes in the same 'operon' (only used for the 'operon_context' output column) (default: 10000)
       --batchsize           Number of samples to join in each batch (default: 100)
       --max_evalue          Maximum E-value threshold used to filter initial alignments (default: 0.001)
+      --mashtree            If specified, generate a tree (via mashtree) of all genomes (default: do not run)
       --annotations         If specified, annotate the regions of all genomes which contain operons
       --annotation_window   The additional area on either side of the operon to annotate (in bp) (default: 10000)
       --cluster_identity    Percent similarity used to cluster adjacent genes (default: 80)
@@ -265,13 +266,14 @@ workflow {
     validateFASTA(
         joined_fasta_ch
     )
-
-    // Create a tree summarizing whole-genome similarity
-    mashtree(
-        validateFASTA.out.map({
-            it -> it[2]
-        }).toSortedList()
-    )
+    if (params.mashtree) {
+        // Create a tree summarizing whole-genome similarity
+        mashtree(
+            validateFASTA.out.map({
+                it -> it[2]
+            }).toSortedList()
+        )
+    }
 
     // Each gene in the operon is represented by a single sequence in a
     // multi-FASTA which contains all of the genes in the operon
