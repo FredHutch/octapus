@@ -77,7 +77,7 @@ df = df.reindex(
 
 # Force organism names to be alphanumeric
 df = df.apply(
-    lambda c: c.apply(lambda n: re.sub('[^0-9a-zA-Z .]+', '_', n)) if c.name == "#Organism Name" else c
+    lambda c: c.apply(lambda n: re.sub('[^0-9a-zA-Z .]+', '_', str(n))) if c.name == "#Organism Name" else c
 )
 
 df.to_csv("manifest_local.csv", index=None, sep=",")
