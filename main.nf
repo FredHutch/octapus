@@ -8,6 +8,7 @@ params.help = false
 params.output_folder = false
 params.output_prefix = false
 params.genomes = false
+params.genomes_local = false
 params.operon = false
 params.operon_list = false
 params.min_identity = 90
@@ -42,6 +43,7 @@ include {
     linclust;
     clinker;
     sanitize_manifest;
+    sanitize_manifest_local;
     mashtree;
 } from './modules/modules' params(
     output_prefix: params.output_prefix,
@@ -75,9 +77,14 @@ def helpMessage() {
     nextflow run FredHutch/OCTAPUS <ARGUMENTS>
     
     Required Arguments:
+    At least ONE of:
       --genomes             CSV file listing genomes (from https://www.ncbi.nlm.nih.gov/genome/browse)
-      --operon              Amino acid sequences to search for, in multi-FASTA format
-      --operon_list         Flag to input multiple sequences per gene -- see description below
+      --genomes_local       CSV file listing local genomes, with columns '#Organism name' and 'uri'
+    And:
+      --operon              Amino acid sequences to search for, in multi-FASTP format
+        OR
+      --operon_list         Flag to input multiple sequences per gene -- see description below    
+    And:      
       --output_folder       Folder to write output files to
       --output_prefix       Prefix to use for output file names
 
@@ -133,14 +140,30 @@ def helpMessage() {
 workflow {
 
     // Show help message if the user specifies the --help flag at runtime
-    if (params.help || !params.genomes || !params.output_folder || !params.output_prefix){
+    if (params.help  || !params.output_folder || !params.output_prefix){
         // Invoke the function above which prints the help message
         helpMessage()
         // Exit out and do not run anything else
         exit 0
     }
+    // The user must specify genomes and/or genomes_local
+    if (
+        (!params.genomes && !params.genomes_local) 
+    ){
+        log.info"""
 
-    // The user must specify _either_ --operon or --operon_list
+        Please specify --genomes and/or --genomes_local that are not empty.
+
+        Use the --help flag for more usage information.
+        
+        """.stripIndent()
+
+        // Exit out and do not run anything else
+        exit 0        
+
+    }
+    
+    // The user must specify _either_ --genomes or --operon_list
     if (!params.operon_list && !params.operon){
         log.info"""
 
@@ -168,51 +191,75 @@ workflow {
         exit 0
     }
 
-    // Make sure that the input files exist
-    if (file(params.genomes).isEmpty()){
-        log.info"""
-        The specified --genomes file cannot be found!
-        """.stripIndent()
-        exit 1
-    }
-
-    // Parse the manifest to get a name and FTP prefix for each genome
-    sanitize_manifest(
-        file(params.genomes)
-    )
-    sanitize_manifest.out.map {
-        r -> r.splitCsv(
-            header: true
+    if (params.genomes) {
+        // Parse the manifest to get a name and FTP prefix for each genome
+        sanitize_manifest(
+            file(params.genomes)
         )
-    }.flatten(
-    ).branch {
-        remote: it["uri"] == ""
-        local: true
-    }.set {
-        split_genome_ch
+        sanitize_manifest.out.map {
+            r -> r.splitCsv(
+                header: true
+            )
+        }.flatten(
+        ).branch {
+            remote: it["uri"] == ""
+            local: true
+        }.set {
+            split_genome_ch
+        }
+
+        // Download the genomes from the NCBI FTP server
+        fetchFTP(
+            split_genome_ch.remote.map {
+                r -> [
+                    r["GenBank FTP"].split("/")[-1].replaceAll(/"/, ""), // Unique genome ID
+                    r["#Organism Name"],                                 // Readable name
+                    r["GenBank FTP"]                                     // FTP folder containing the genome
+                ]
+            }
+        )
+
+        // Make a new channel joining the FTP files with local files
+        joined_fasta_gb_ch = fetchFTP.out.mix(
+            split_genome_ch.local.map {
+                r -> [
+                    r["uri"].split("/")[-1],
+                    r["#Organism Name"],
+                    file(r["uri"])
+                ]
+            }
+        )        
+    } // end if we have params.genomes
+    if (params.genomes_local) {
+        // Parse the manifest to get a name and FTP prefix for each genome
+        sanitize_manifest_local(
+            file(params.genomes_local)
+        )
+        sanitize_manifest_local.out.map {
+            r -> r.splitCsv(
+                header: true
+            )
+        }.flatten(
+        ).map {
+            r -> [
+                    r["uri"].split("/")[-1],
+                    r["#Organism Name"],
+                    file(r["uri"])
+                ]
+        }.set {
+            joined_fasta_local_ch
+        }
+
+    } // end if we have a local genomes
+
+    if (params.genomes && params.genomes_local) {
+        joined_fasta_ch  = joined_fasta_gb_ch.mix(joined_fasta_local_ch)
+    } else if (params.genomes) {
+        joined_fasta_ch = joined_fasta_gb_ch
+    } else {
+        joined_fasta_ch = joined_fasta_local_ch
     }
 
-    // Download the genomes from the NCBI FTP server
-    fetchFTP(
-        split_genome_ch.remote.map {
-            r -> [
-                r["GenBank FTP"].split("/")[-1].replaceAll(/"/, ""), // Unique genome ID
-                r["#Organism Name"],                                 // Readable name
-                r["GenBank FTP"]                                     // FTP folder containing the genome
-            ]
-        }
-    )
-
-    // Make a new channel joining the FTP files with local files
-    joined_fasta_ch = fetchFTP.out.mix(
-        split_genome_ch.local.map {
-            r -> [
-                r["uri"].split("/")[-1],
-                r["#Organism Name"],
-                file(r["uri"])
-            ]
-        }
-    )
 
     // Process all FASTA inputs to make sure that their format is valid
     validateFASTA(

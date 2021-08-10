@@ -48,6 +48,42 @@ df.to_csv("manifest.csv", index=None, sep=",")
 """
 }
 
+// Parse the local manifest and sanitize the fields
+process sanitize_manifest_local {
+    container "${params.container__pandas}"
+    label 'io_limited'
+
+    input:
+        path "raw.manifest.csv"
+    
+    output:
+        path "manifest_local.csv", emit: manifest
+    
+"""
+#!/usr/bin/env python3
+
+import pandas as pd
+import re
+
+df = pd.read_csv("raw.manifest.csv")
+
+print("Subsetting to three columns")
+df = df.reindex(
+    columns = [
+        "#Organism Name",
+        "uri"
+    ]
+)
+
+# Force organism names to be alphanumeric
+df = df.apply(
+    lambda c: c.apply(lambda n: re.sub('[^0-9a-zA-Z .]+', '_', n)) if c.name == "#Organism Name" else c
+)
+
+df.to_csv("manifest_local.csv", index=None, sep=",")
+"""
+}
+
 // Parse each individual alignment file
 process collectResults {
     
