@@ -111,3 +111,69 @@ Bioinformatics 2014 Jul 15;30(14):2068-9. PMID:24642063
 Gilchrist, C.L.M, 2020. clinker: Easy gene cluster comparison figure generator.
 
 ```
+
+## Using Nextflow for Bioinformatic Analysis
+
+One of the challenges of distributing software for bioinformatic analysis is that many
+users have different computational resources that they may wish to use for an analysis.
+Depending on the scenario, users may want to run their actual analysis on systems that
+are as different as:
+
+- Personal computers
+- Shared computing clusters (e.g., SLURM, PBS)
+- Cloud computing (e.g. AWS, Google Cloud, Microsoft Azure)
+
+Writing software that will run in the same way across all of those really quite different
+systems is very difficult. To achieve this goal, we have written OCTAPUS to be run using
+the Nextflow software for workflow management. Nextflow is an open source community
+project which [was originally intended](http://rdcu.be/qZVo) to provide a common approach
+for running bioinformatic analyses. In the years since its initial release, Nextflow has
+become quite a robust resource with support for many different types of computational
+infrastructure, as well as a flexible and modular system for authoring workflows.
+
+As a user, this means that you only have to configure Nextflow once so that it knows
+how to run on your available compute resources, and then you can use that same configuration
+to run any workflow which is written with Nextflow. With an active user community, there
+is now a [long list of useful workflows](https://nf-co.re/pipelines) which become available.
+
+If you are just getting started, the one point that will be needed to run OCTAPUS is that
+it uses software containers in order to manage all of the needed dependencies. Practically
+speaking, this means that you must [enable Docker](https://www.nextflow.io/docs/latest/config.html#scope-docker)
+when running on a system with Docker installed. For any system which does not allow Docker
+(e.g., shared computing clusters), you must [enable Singularity](https://www.nextflow.io/docs/latest/config.html#scope-singularity) instead.
+
+## Example Run
+
+If you would like to test out OCTAPUS by running some test data, follow these steps:
+
+1. Download and install [Nextflow](https://nextflow.io/) to your path;
+2. Clone this repository to your local filesystem (called `$REPO_FOLDER` below)
+3. Create a separate directory to use for running the analysis (called `$RUN_FOLDER` below);
+4. Configure Nextflow by creating a file called `nextflow.config` in `$RUN_FOLDER` which
+[is formatted appropriately](https://www.nextflow.io/docs/latest/config.html) for your needs;
+5. Create a BASH script in `$RUN_FOLDER` which contains the following command, and run it.
+
+### Example Run Script
+
+```#!/bin/bash
+
+nextflow \
+  run \
+  -c $RUN_FOLDER/nextflow.config \
+  FredHutch/OCTAPUS \
+  --genomes $REPO_FOLDER/test_data/genomes.csv \
+  --operon $REPO_FOLDER/test_data/lac_operon.fasta \
+  --output_folder $RUN_FOLDER/output \
+  --output_prefix output \
+  -latest
+
+```
+
+### Notes on the example run script
+
+- The backslashes at the end of each line (`\`) indicate to the shell that the line wraps.
+Do not add any spaces after these backslashes.
+- The `nextflow.config` should contain instructions for using either Docker or Singularity.
+- The same analysis pattern may be used to analyze any dataset by exchanging the genomes and gene files used.
+- The `-latest` flag will ensure that the most recent version of OCTAPUS is run. To run
+a specific version, use the `-r` flag to specify a particular revision of the repository.
