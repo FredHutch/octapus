@@ -1,0 +1,25 @@
+{
+    "$schema": "https://raw.githubusercontent.com/FredHutch/bash-workbench/main/docs/schema.json",
+    "name": "OCTAPUS - Join Results",
+    "description": "Combine a set of OCTAPUS results",
+    "args": {
+        "csv_list": {
+            "help": "Comma-separated list of CSV results files to join",
+            "wb_type": "string",
+            "required": true
+        },
+        "output_prefix": {
+            "help": "Prefix to use for combined output file",
+            "wb_type": "string",
+            "default": "OCTAPUS_combined"
+        },
+        "nxf_profile": {
+            "help": "Profile used for resource allocation (standard or testing)",
+            "wb_env": "PROFILE",
+            "wb_type": "select",
+            "wb_choices": ["standard", "testing"],
+            "default": "standard"
+        }
+    }
+}
+

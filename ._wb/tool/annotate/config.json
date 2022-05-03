@@ -1,0 +1,28 @@
+{
+    "$schema": "https://raw.githubusercontent.com/FredHutch/bash-workbench/main/docs/schema.json",
+    "name": "OCTAPUS - annotate",
+    "description": "Extract a subset of results from OCTAPUS results",
+    "args": {
+        "octapus_results": {
+            "help": "Spreadsheet containing OCTAPUS outputs (in CSV format)",
+            "wb_type": "file"
+        },
+        "genomes": {
+            "help": "CSV file listing genomes (from https://www.ncbi.nlm.nih.gov/genome/browse)\n    - use the column 'uri' to list local genomes",
+            "wb_type": "file"
+        },
+        "annotation_window": {
+            "help": "The additional area on either side of the operon to annotate (in bp) (default: 10000)",
+            "wb_type": "integer",
+            "default": "10000"
+        },
+        "nxf_profile": {
+            "help": "Profile used for resource allocation (standard or testing)",
+            "wb_env": "PROFILE",
+            "wb_type": "select",
+            "wb_choices": ["standard", "testing"],
+            "default": "standard"
+        }
+    }
+}
+

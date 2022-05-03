@@ -1,0 +1,81 @@
+{
+    "$schema": "https://raw.githubusercontent.com/FredHutch/bash-workbench/main/docs/schema.json",
+    "name": "OCTAPUS",
+    "description": "Operon ConTextulization Across Prokaryotes to Uncover Synteny",
+    "args": {
+        "output_prefix": {
+            "help": "Prefix to use for all output files",
+            "wb_type": "string",
+            "default": "OCTAPUS"
+        },
+        "genomes": {
+            "help": "CSV file listing genomes (from https://www.ncbi.nlm.nih.gov/genome/browse)",
+            "wb_type": "file"
+        },
+        "genomes_local": {
+            "help": "CSV file listing local genomes, with columns '#Organism name' and 'uri'",
+            "wb_type": "file"
+        },
+        "operon": {
+            "help": "Amino acid sequences to search for, in multi-FASTA format",
+            "wb_type": "file"
+        },
+        "operon_list": {
+            "help": "Flag to input multiple sequences per gene,\n    e.g. lacZ=test_data/lacZ.fasta,lacY=test_data/lacY.fasta,lacA=test_data/lacA.fasta",
+            "wb_type": "string"
+        },
+        "min_identity": {
+            "help": "Percent identity threshold used for alignment (default: 90)",
+            "wb_type": "integer",
+            "default": "90"
+        },
+        "min_coverage": {
+            "help": "Percent coverage threshold used for alignment (default: 50)",
+            "wb_type": "integer",
+            "default": "50"
+        },
+        "max_operon_gap": {
+            "help": "Maximum gap between genes in the same 'operon' (only used for the 'operon_context' output column) (default: 10000)",
+            "wb_type": "integer",
+            "default": "10000"
+        },
+        "batchsize": {
+            "help": "Number of samples to join in each batch (default: 100)",
+            "wb_type": "integer",
+            "default": "100"
+        },
+        "max_evalue": {
+            "help": "Maximum E-value threshold used to filter initial alignments (default: 0.001)",
+            "wb_type": "float",
+            "default": "0.001"
+        },
+        "annotations": {
+            "help": "If specified, annotate the regions of all genomes which contain operons",
+            "wb_type": "bool",
+            "default": false
+        },
+        "annotation_window": {
+            "help": "The additional area on either side of the operon to annotate (in bp) (default: 10000)",
+            "wb_type": "integer",
+            "default": "10000"
+        },
+        "cluster_identity": {
+            "help": "Percent similarity used to cluster adjacent genes (default: 80)",
+            "wb_type": "integer",
+            "default": "80"
+        },
+        "cluster_coverage": {
+            "help": "Percent coverage used to cluster adjacent genes (default: 50)",
+            "wb_type": "integer",
+            "default": "50"
+        },
+        "nxf_profile": {
+            "help": "Profile used for resource allocation (standard or testing)",
+            "wb_env": "PROFILE",
+            "wb_type": "select",
+            "wb_choices": ["standard", "testing"],
+            "default": "standard"
+        }
+    }
+}
+
