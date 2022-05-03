@@ -306,7 +306,7 @@ app.title = "Bacterial Operon Finder for Functional Organization"
 ######################
 
 # Folder used to host files
-DOWNLOAD_DIR = os.path.join(os.getcwd(), "boffo_downloads")
+DOWNLOAD_DIR = os.path.join(os.getcwd(), "octapus_downloads")
 if not os.path.exists(DOWNLOAD_DIR):
     os.mkdir(DOWNLOAD_DIR)
 
