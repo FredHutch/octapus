@@ -195,7 +195,7 @@ workflow {
     if ( "${params.genomes}" != "false" ) {
         // Parse the manifest to get a name and FTP prefix for each genome
         sanitize_manifest(
-            file(params.genomes)
+            file("${params.genomes}")
         )
         sanitize_manifest.out.map {
             r -> r.splitCsv(
@@ -243,7 +243,7 @@ workflow {
     if ( "${params.genomes_local}" != "false" ) {
         // Parse the manifest to get a name and FTP prefix for each genome
         sanitize_manifest_local(
-            file(params.genomes_local)
+            file("${params.genomes}")
         )
         sanitize_manifest_local.out.map {
             r -> r.splitCsv(
@@ -288,7 +288,7 @@ workflow {
     if (params.operon){
 
         // Point to the operon file
-        operon_fasta = file(params.operon)    // Align the operon against each genome
+        operon_fasta = file("${params.genomes}")    // Align the operon against each genome
 
         // Make sure the file is not empty
         if (operon_fasta.isEmpty()){
