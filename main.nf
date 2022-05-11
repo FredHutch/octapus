@@ -193,7 +193,7 @@ workflow {
     }
 
     // Set up a channel with all of the genomes that were specified
-    joined_fasta_ch = Channel.create()
+    joined_fasta_ch = Channel.empty()
 
     if ( "${params.genomes}" != "false" ) {
         // Parse the manifest to get a name and FTP prefix for each genome
