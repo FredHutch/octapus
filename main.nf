@@ -192,9 +192,6 @@ workflow {
         exit 0
     }
 
-    // Set up a channel with all of the genomes that were specified
-    joined_fasta_ch = Channel.empty()
-
     if ( "${params.genomes}" != "false" ) {
         // Parse the manifest to get a name and FTP prefix for each genome
         sanitize_manifest(
@@ -235,9 +232,14 @@ workflow {
                     ]
                 }
             )
-            .tap(joined_fasta_ch)
+            .set(genomes_ch)
 
-    } // end if we have params.genomes
+    } else {
+
+        genomes_ch = Channel.empty()
+
+    }
+
     if ( "${params.genomes_local}" != "false" ) {
         // Parse the manifest to get a name and FTP prefix for each genome
         sanitize_manifest_local(
@@ -255,9 +257,17 @@ workflow {
                     file(r["uri"])
                 ]
         }
-        .tap(joined_fasta_ch)
+        .set(genomes_local_ch)
 
-    } // end if we have a local genomes
+    } else {
+
+        genomes_local_ch = Channel.empty()
+
+    }
+
+    genomes_ch
+        .mix(genomes_local_ch)
+        .set(joined_fasta_ch)
 
     // Process all FASTA inputs to make sure that their format is valid
     validateFASTA(
