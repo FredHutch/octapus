@@ -192,7 +192,10 @@ workflow {
         exit 0
     }
 
-    if (params.genomes) {
+    // Set up a channel with all of the genomes that were specified
+    joined_fasta_ch = Channel.create()
+
+    if ( "${params.genomes}" != "false" ) {
         // Parse the manifest to get a name and FTP prefix for each genome
         sanitize_manifest(
             file(params.genomes)
@@ -220,18 +223,22 @@ workflow {
             }
         )
 
-        // Make a new channel joining the FTP files with local files
-        joined_fasta_gb_ch = fetchFTP.out.mix(
-            split_genome_ch.local.map {
-                r -> [
-                    r["uri"].split("/")[-1],
-                    r["#Organism Name"],
-                    file(r["uri"])
-                ]
-            }
-        )        
+        // Add both sets of files to the combined channel
+        fetchFTP
+            .out
+            .mix(
+                split_genome_ch.local.map {
+                    r -> [
+                        r["uri"].split("/")[-1],
+                        r["#Organism Name"],
+                        file(r["uri"])
+                    ]
+                }
+            )
+            .tap(joined_fasta_ch)
+
     } // end if we have params.genomes
-    if (params.genomes_local) {
+    if ( "${params.genomes_local}" != "false" ) {
         // Parse the manifest to get a name and FTP prefix for each genome
         sanitize_manifest_local(
             file(params.genomes_local)
@@ -247,20 +254,10 @@ workflow {
                     r["#Organism Name"],
                     file(r["uri"])
                 ]
-        }.set {
-            joined_fasta_local_ch
         }
+        .tap(joined_fasta_ch)
 
     } // end if we have a local genomes
-
-    if (params.genomes && params.genomes_local) {
-        joined_fasta_ch  = joined_fasta_gb_ch.mix(joined_fasta_local_ch)
-    } else if (params.genomes) {
-        joined_fasta_ch = joined_fasta_gb_ch
-    } else {
-        joined_fasta_ch = joined_fasta_local_ch
-    }
-
 
     // Process all FASTA inputs to make sure that their format is valid
     validateFASTA(
