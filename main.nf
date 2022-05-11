@@ -265,6 +265,7 @@ workflow {
     // Process all FASTA inputs to make sure that their format is valid
     validateFASTA(
         joined_fasta_ch
+            .ifEmpty { error "No FASTA inputs found" }
     )
     if (params.mashtree) {
         // Create a tree summarizing whole-genome similarity
