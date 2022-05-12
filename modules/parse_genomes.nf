@@ -96,6 +96,9 @@ df.to_csv("manifest_local.csv", index=None, sep=",")
 
 workflow parse_genomes {
 
+    log.info"genomes: ${params.genomes}"
+    log.info"genomes_local: ${params.genomes_local}"
+
     // Parse the manifest to get a name and FTP prefix for each genome
     sanitize_manifest(
         file("${params.genomes}")
