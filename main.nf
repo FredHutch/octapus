@@ -219,7 +219,7 @@ workflow {
         // Instead, each gene is specified as its own multi-FASTA
         makePSSM(
             Channel.from(
-                params.operon_list.split(",")
+                "${params.operon_list}".split(",")
             ).flatten(
             ).map {
                 r -> [
