@@ -242,15 +242,15 @@ workflow {
 
     }
     
-    // // Join the parsed alignments with the FASTA for each genome
-    // // For each alignment, extract the sequence of the aligned region
-    // extractAlignments(
-    //     validateFASTA.out.join(
-    //         parseAlignments.out.map {
-    //             r -> [r.name.replaceAll(/.csv.gz/, ""), r]
-    //         }
-    //     )
-    // )
+    // Join the parsed alignments with the FASTA for each genome
+    // For each alignment, extract the sequence of the aligned region
+    extractAlignments(
+        validateFASTA.out.join(
+            parseAlignments.out.map {
+                r -> [r.name.replaceAll(/.csv.gz/, ""), r]
+            }
+        )
+    )
 
     // // Collect results in rounds
     // collectResultsRound1(
