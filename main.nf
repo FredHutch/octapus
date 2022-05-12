@@ -268,93 +268,93 @@ workflow {
         collectResultsRound1.out.collate(params.batchsize.toInteger())
     )
 
-    // // Make a single output table
-    // collectFinalResults(
-    //     collectResultsRound2.out.collect()
-    // )
+    // Make a single output table
+    collectFinalResults(
+        collectResultsRound2.out.collect()
+    )
 
-    // // Make the FASTA of aligned sequences
-    // formatFASTA(
-    //     collectFinalResults.out
-    // )
+    // Make the FASTA of aligned sequences
+    formatFASTA(
+        collectFinalResults.out
+    )
 
-    // // Make the summary PDF
-    // summaryPDF(
-    //     collectFinalResults.out
-    // )
+    // Make the summary PDF
+    summaryPDF(
+        collectFinalResults.out
+    )
 
-    // // If the --annotations flag is set
-    // if (params.annotations){
+    // If the --annotations flag is set
+    if (params.annotations){
 
-    //     // Make a channel with the genomes containing all of the operons identified in this analysis
-    //     genome_ch = collectFinalResults.out.map {
-    //         r -> r.splitCsv(
-    //             header: true
-    //         )
-    //     }.flatten(
-    //     ).map { // Just keep the genome ID across all hits
-    //         r -> [
-    //             r["genome_id"],
-    //         ]
-    //     }.unique( // Drop duplicate entries
-    //     ).join( // Add the genomes
-    //         validateFASTA.out
-    //     )
+        // Make a channel with the genomes containing all of the operons identified in this analysis
+        genome_ch = collectFinalResults.out.map {
+            r -> r.splitCsv(
+                header: true
+            )
+        }.flatten(
+        ).map { // Just keep the genome ID across all hits
+            r -> [
+                r["genome_id"],
+            ]
+        }.unique( // Drop duplicate entries
+        ).join( // Add the genomes
+            validateFASTA.out
+        )
 
-    //     // Annotate these genomes with prokka
-    //     prokka(
-    //         genome_ch
-    //     )
+        // Annotate these genomes with prokka
+        prokka(
+            genome_ch
+        )
 
-    //     // Make a channel with each unique operon per genome and contig
-    //     // Combine the operon coordinates with the genome files
-    //     annotation_ch = prokka.out.cross(
-    //         collectFinalResults.out.map {
-    //             r -> r.splitCsv(
-    //                 header: true
-    //             )
-    //         }.flatten(
-    //         ).map { // Just keep the genome ID across all hits
-    //             r -> [
-    //                 r["genome_id"],
-    //                 r["operon_context"],
-    //                 r["operon_ix"],
-    //                 r["contig_name"],
-    //             ]
-    //         }.unique( // Drop duplicate entries
-    //         )
-    //     ).map {
-    //         i -> [
-    //             i[0][0],
-    //             i[1][1],
-    //             i[1][2],
-    //             i[1][3],
-    //             i[0][1],
-    //             i[0][2]
-    //         ]
-    //     }
+        // Make a channel with each unique operon per genome and contig
+        // Combine the operon coordinates with the genome files
+        annotation_ch = prokka.out.cross(
+            collectFinalResults.out.map {
+                r -> r.splitCsv(
+                    header: true
+                )
+            }.flatten(
+            ).map { // Just keep the genome ID across all hits
+                r -> [
+                    r["genome_id"],
+                    r["operon_context"],
+                    r["operon_ix"],
+                    r["contig_name"],
+                ]
+            }.unique( // Drop duplicate entries
+            )
+        ).map {
+            i -> [
+                i[0][0],
+                i[1][1],
+                i[1][2],
+                i[1][3],
+                i[0][1],
+                i[0][2]
+            ]
+        }
 
-    //     // Extract the regions of the GBK files which operons fall into
-    //     extractGBK(
-    //         annotation_ch,
-    //         collectFinalResults.out
-    //     )
+        // Extract the regions of the GBK files which operons fall into
+        extractGBK(
+            annotation_ch,
+            collectFinalResults.out
+        )
 
-    //     // Make a clinker webpage for each operon context,
-    //     // filtering to those operon contexts which contain > 1 representative
-    //     clinker(
-    //         extractGBK.out[0].groupTuple(
-    //         ).filter({
-    //             it -> it[1].size() > 1
-    //         })
-    //     )
+        // Make a clinker webpage for each operon context,
+        // filtering to those operon contexts which contain > 1 representative
+        clinker(
+            extractGBK.out[0].groupTuple(
+            ).filter({
+                it -> it[1].size() > 1
+            })
+        )
 
-    //     // Cluster all of the adjacent genes by amino acid similarity
-    //     linclust(
-    //         extractGBK.out[1].flatten().toSortedList()
-    //     )
+        // Cluster all of the adjacent genes by amino acid similarity
+        linclust(
+            extractGBK.out[1].flatten().toSortedList()
+        )
         
-    // }
+    }
 
 }
 
