@@ -4,6 +4,8 @@ Formerly: Bacterial Operon Finder for Functional Organization (BOFFO)
 
 Tool to search bacterial genomes for candidate operons
 
+[![OCTAPUS](https://github.com/FredHutch/octapus/actions/workflows/test.yaml/badge.svg)](https://github.com/FredHutch/octapus/actions/workflows/test.yaml)
+
 ## Goal
 
 Search through a set of bacterial genomes for a set of genes, identify

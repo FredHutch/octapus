@@ -7,3 +7,7 @@ app/boffo_downloads/
 app/octapus_downloads/
 .DS_Store
 test_data/
+trace.txt*
+report.html*
+output_batch1/
+test.sh
