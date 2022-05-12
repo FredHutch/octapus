@@ -190,7 +190,7 @@ workflow {
 
     // Each gene in the operon is represented by a single sequence in a
     // multi-FASTA which contains all of the genes in the operon
-    if (params.operon){
+    if ("${params.operon}" != "false"){
 
         // Point to the operon file
         operon_fasta = file("${params.operon}")    // Align the operon against each genome
