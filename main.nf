@@ -173,14 +173,14 @@ workflow {
     // Parse the genomes from the manifest
     parse_genomes()
 
-    parse_genomes.out.view()
+    // Process all FASTA inputs to make sure that their format is valid
+    validateFASTA(
+        parse_genomes
+            .out
+            .ifEmpty { error "No FASTA inputs found" }
+    )
 
-    // // Process all FASTA inputs to make sure that their format is valid
-    // validateFASTA(
-    //     parse_genomes
-    //         .out
-    //         .ifEmpty { error "No FASTA inputs found" }
-    // )
+    validateFASTA.out.view()
     // if (params.mashtree) {
     //     // Create a tree summarizing whole-genome similarity
     //     mashtree(
