@@ -254,9 +254,7 @@ workflow {
 
     // Collect results in rounds
     collectResultsRound1(
-        extractAlignments
-            .out
-            .collate(params.batchsize)
+        extractAlignments.out.collate(params.batchsize)
     )
     collectResultsRound2(
         collectResultsRound1.out.collate(params.batchsize)
