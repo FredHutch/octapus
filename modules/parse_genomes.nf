@@ -2,7 +2,7 @@
 // Import modules fetchFTP for genome FASTA files
 include {
     fetchFTP;
-} from './modules' params(
+} from './modules' addParams(
     ftp_threads: params.ftp_threads,
     ftp_suffix: "_genomic.fna.gz",
     local_suffix: ".fasta.gz",
@@ -160,8 +160,6 @@ workflow parse_genomes {
     genomes_ch
         .mix(genomes_local_ch)
         .set{joined_fasta_ch}
-
-    joined_fasta_ch.view()
 
     emit:
     joined_fasta_ch

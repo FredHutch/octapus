@@ -173,8 +173,6 @@ workflow {
     // Parse the genomes from the manifest
     parse_genomes()
 
-    parse_genomes.out.view()
-
     // Process all FASTA inputs to make sure that their format is valid
     validateFASTA(
         parse_genomes
