@@ -1,4 +1,4 @@
-name: BOFFO
+name: OCTAPUS
 
 on: [push, pull_request]  
 
@@ -83,7 +83,7 @@ jobs:
       - name:  Run OCTAPUS batch 1
         run: |
           nextflow run main.nf \
-            --genomes test_data/genomes.csv \
+            --genomes_local test_data/genomes.csv \
             --operon test_data/lac_operon.fasta \
             --output_folder output_batch1 \
             --output_prefix batch1 \
