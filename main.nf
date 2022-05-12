@@ -267,7 +267,7 @@ workflow {
 
     genomes_ch
         .mix(genomes_local_ch)
-        .set(joined_fasta_ch)
+        .set{joined_fasta_ch}
 
     // Process all FASTA inputs to make sure that their format is valid
     validateFASTA(
