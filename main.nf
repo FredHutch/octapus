@@ -241,26 +241,32 @@ workflow {
         )
 
     }
+
+    // Make sure that some FASTAs were made
+    validateFASTA.out.ifEmpty { error "No validated FASTAs found" }
+    parseAlignments.out.ifEmpty { error "No parsed alignments found" }
+
+    // Join the FASTAs with the alignments
+    joined_fastas_alignments = validateFASTA.out.join(
+        parseAlignments.out.map {
+            r -> [r.name.replaceAll(/.csv.gz/, ""), r]
+        }
+    )
+
+    // Make sure that we have some joined items
+    joined_fastas_alignments.ifEmpty { error "Could not join any FASTAs with alignments" }
     
     // Join the parsed alignments with the FASTA for each genome
     // For each alignment, extract the sequence of the aligned region
-    extractAlignments(
-        validateFASTA.out.join(
-            parseAlignments.out.map {
-                r -> [r.name.replaceAll(/.csv.gz/, ""), r]
-            }
-        )
+    extractAlignments(joined_fastas_alignments)
+
+    // Collect results in rounds
+    collectResultsRound1(
+        extractAlignments.out.collate(params.batchsize)
     )
-
-    extractAlignments.out.view()
-
-    // // Collect results in rounds
-    // collectResultsRound1(
-    //     extractAlignments.out.collate(params.batchsize)
-    // )
-    // collectResultsRound2(
-    //     collectResultsRound1.out.collate(params.batchsize)
-    // )
+    collectResultsRound2(
+        collectResultsRound1.out.collate(params.batchsize)
+    )
 
     // // Make a single output table
     // collectFinalResults(
