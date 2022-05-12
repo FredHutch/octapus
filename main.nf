@@ -173,181 +173,183 @@ workflow {
     // Parse the genomes from the manifest
     parse_genomes()
 
-    // Process all FASTA inputs to make sure that their format is valid
-    validateFASTA(
-        parse_genomes
-            .out
-            .ifEmpty { error "No FASTA inputs found" }
-    )
-    if (params.mashtree) {
-        // Create a tree summarizing whole-genome similarity
-        mashtree(
-            validateFASTA.out.map({
-                it -> it[2]
-            }).toSortedList()
-        )
-    }
+    parse_genomes.out.view()
 
-    // Each gene in the operon is represented by a single sequence in a
-    // multi-FASTA which contains all of the genes in the operon
-    if ("${params.operon}" != "false"){
+    // // Process all FASTA inputs to make sure that their format is valid
+    // validateFASTA(
+    //     parse_genomes
+    //         .out
+    //         .ifEmpty { error "No FASTA inputs found" }
+    // )
+    // if (params.mashtree) {
+    //     // Create a tree summarizing whole-genome similarity
+    //     mashtree(
+    //         validateFASTA.out.map({
+    //             it -> it[2]
+    //         }).toSortedList()
+    //     )
+    // }
 
-        // Point to the operon file
-        operon_fasta = file("${params.operon}")    // Align the operon against each genome
+    // // Each gene in the operon is represented by a single sequence in a
+    // // multi-FASTA which contains all of the genes in the operon
+    // if ("${params.operon}" != "false"){
 
-        // Make sure the file is not empty
-        if (operon_fasta.isEmpty()){
-            log.info"""
-            The specified --operon file cannot be found!
-            """.stripIndent()
-            exit 1
-        }
+    //     // Point to the operon file
+    //     operon_fasta = file("${params.operon}")    // Align the operon against each genome
 
-        // Simply run BLAST on each of the genomes
-        runBLAST(
-            validateFASTA.out,
-            operon_fasta
-        )
+    //     // Make sure the file is not empty
+    //     if (operon_fasta.isEmpty()){
+    //         log.info"""
+    //         The specified --operon file cannot be found!
+    //         """.stripIndent()
+    //         exit 1
+    //     }
 
-        // Parse each individual alignment
-        parseAlignments(
-            runBLAST.out
-        )
+    //     // Simply run BLAST on each of the genomes
+    //     runBLAST(
+    //         validateFASTA.out,
+    //         operon_fasta
+    //     )
 
-    }else{
+    //     // Parse each individual alignment
+    //     parseAlignments(
+    //         runBLAST.out
+    //     )
 
-        // Instead, each gene is specified as its own multi-FASTA
-        makePSSM(
-            Channel.from(
-                "${params.operon_list}".split(",")
-            ).flatten(
-            ).map {
-                r -> [
-                    r.split("=")[0], file(r.split("=")[1])
-                ]
-            }
-        )
+    // }else{
 
-        // Run PSIBLAST for each gene against this genome
-        runPSIBLAST(
-            validateFASTA.out,
-            makePSSM.out[0].toSortedList()
-        )
+    //     // Instead, each gene is specified as its own multi-FASTA
+    //     makePSSM(
+    //         Channel.from(
+    //             "${params.operon_list}".split(",")
+    //         ).flatten(
+    //         ).map {
+    //             r -> [
+    //                 r.split("=")[0], file(r.split("=")[1])
+    //             ]
+    //         }
+    //     )
 
-        // Parse each individual alignment
-        parseAlignments(
-            runPSIBLAST.out
-        )
+    //     // Run PSIBLAST for each gene against this genome
+    //     runPSIBLAST(
+    //         validateFASTA.out,
+    //         makePSSM.out[0].toSortedList()
+    //     )
 
-    }
+    //     // Parse each individual alignment
+    //     parseAlignments(
+    //         runPSIBLAST.out
+    //     )
+
+    // }
     
-    // Join the parsed alignments with the FASTA for each genome
-    // For each alignment, extract the sequence of the aligned region
-    extractAlignments(
-        validateFASTA.out.join(
-            parseAlignments.out.map {
-                r -> [r.name.replaceAll(/.csv.gz/, ""), r]
-            }
-        )
-    )
+    // // Join the parsed alignments with the FASTA for each genome
+    // // For each alignment, extract the sequence of the aligned region
+    // extractAlignments(
+    //     validateFASTA.out.join(
+    //         parseAlignments.out.map {
+    //             r -> [r.name.replaceAll(/.csv.gz/, ""), r]
+    //         }
+    //     )
+    // )
 
-    // Collect results in rounds
-    collectResultsRound1(
-        extractAlignments
-            .out
-            .collate(params.batchsize)
-    )
-    collectResultsRound2(
-        collectResultsRound1.out.collate(params.batchsize)
-    )
+    // // Collect results in rounds
+    // collectResultsRound1(
+    //     extractAlignments
+    //         .out
+    //         .collate(params.batchsize)
+    // )
+    // collectResultsRound2(
+    //     collectResultsRound1.out.collate(params.batchsize)
+    // )
 
-    // Make a single output table
-    collectFinalResults(
-        collectResultsRound2.out.collect()
-    )
+    // // Make a single output table
+    // collectFinalResults(
+    //     collectResultsRound2.out.collect()
+    // )
 
-    // Make the FASTA of aligned sequences
-    formatFASTA(
-        collectFinalResults.out
-    )
+    // // Make the FASTA of aligned sequences
+    // formatFASTA(
+    //     collectFinalResults.out
+    // )
 
-    // Make the summary PDF
-    summaryPDF(
-        collectFinalResults.out
-    )
+    // // Make the summary PDF
+    // summaryPDF(
+    //     collectFinalResults.out
+    // )
 
-    // If the --annotations flag is set
-    if (params.annotations){
+    // // If the --annotations flag is set
+    // if (params.annotations){
 
-        // Make a channel with the genomes containing all of the operons identified in this analysis
-        genome_ch = collectFinalResults.out.map {
-            r -> r.splitCsv(
-                header: true
-            )
-        }.flatten(
-        ).map { // Just keep the genome ID across all hits
-            r -> [
-                r["genome_id"],
-            ]
-        }.unique( // Drop duplicate entries
-        ).join( // Add the genomes
-            validateFASTA.out
-        )
+    //     // Make a channel with the genomes containing all of the operons identified in this analysis
+    //     genome_ch = collectFinalResults.out.map {
+    //         r -> r.splitCsv(
+    //             header: true
+    //         )
+    //     }.flatten(
+    //     ).map { // Just keep the genome ID across all hits
+    //         r -> [
+    //             r["genome_id"],
+    //         ]
+    //     }.unique( // Drop duplicate entries
+    //     ).join( // Add the genomes
+    //         validateFASTA.out
+    //     )
 
-        // Annotate these genomes with prokka
-        prokka(
-            genome_ch
-        )
+    //     // Annotate these genomes with prokka
+    //     prokka(
+    //         genome_ch
+    //     )
 
-        // Make a channel with each unique operon per genome and contig
-        // Combine the operon coordinates with the genome files
-        annotation_ch = prokka.out.cross(
-            collectFinalResults.out.map {
-                r -> r.splitCsv(
-                    header: true
-                )
-            }.flatten(
-            ).map { // Just keep the genome ID across all hits
-                r -> [
-                    r["genome_id"],
-                    r["operon_context"],
-                    r["operon_ix"],
-                    r["contig_name"],
-                ]
-            }.unique( // Drop duplicate entries
-            )
-        ).map {
-            i -> [
-                i[0][0],
-                i[1][1],
-                i[1][2],
-                i[1][3],
-                i[0][1],
-                i[0][2]
-            ]
-        }
+    //     // Make a channel with each unique operon per genome and contig
+    //     // Combine the operon coordinates with the genome files
+    //     annotation_ch = prokka.out.cross(
+    //         collectFinalResults.out.map {
+    //             r -> r.splitCsv(
+    //                 header: true
+    //             )
+    //         }.flatten(
+    //         ).map { // Just keep the genome ID across all hits
+    //             r -> [
+    //                 r["genome_id"],
+    //                 r["operon_context"],
+    //                 r["operon_ix"],
+    //                 r["contig_name"],
+    //             ]
+    //         }.unique( // Drop duplicate entries
+    //         )
+    //     ).map {
+    //         i -> [
+    //             i[0][0],
+    //             i[1][1],
+    //             i[1][2],
+    //             i[1][3],
+    //             i[0][1],
+    //             i[0][2]
+    //         ]
+    //     }
 
-        // Extract the regions of the GBK files which operons fall into
-        extractGBK(
-            annotation_ch,
-            collectFinalResults.out
-        )
+    //     // Extract the regions of the GBK files which operons fall into
+    //     extractGBK(
+    //         annotation_ch,
+    //         collectFinalResults.out
+    //     )
 
-        // Make a clinker webpage for each operon context,
-        // filtering to those operon contexts which contain > 1 representative
-        clinker(
-            extractGBK.out[0].groupTuple(
-            ).filter({
-                it -> it[1].size() > 1
-            })
-        )
+    //     // Make a clinker webpage for each operon context,
+    //     // filtering to those operon contexts which contain > 1 representative
+    //     clinker(
+    //         extractGBK.out[0].groupTuple(
+    //         ).filter({
+    //             it -> it[1].size() > 1
+    //         })
+    //     )
 
-        // Cluster all of the adjacent genes by amino acid similarity
-        linclust(
-            extractGBK.out[1].flatten().toSortedList()
-        )
+    //     // Cluster all of the adjacent genes by amino acid similarity
+    //     linclust(
+    //         extractGBK.out[1].flatten().toSortedList()
+    //     )
         
-    }
+    // }
 
 }
 
