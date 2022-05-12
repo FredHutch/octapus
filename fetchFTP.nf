@@ -4,13 +4,7 @@
 nextflow.enable.dsl=2
 
 // Set default parameters
-params.help = false
-params.output_folder = false
-params.genomes = false
 params.ftp_threads = 100
-
-// Docker containers reused across processes
-container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
 
 // Function which prints help message text
 def helpMessage() {
@@ -119,7 +113,7 @@ wget --quiet -O ${uuid}.fasta.gz ${ftp_prefix}/${uuid}_genomic.fna.gz
 
 // Parse the manifest and sanitize the fields
 process sanitize_manifest {
-    container "${container__pandas}"
+    container "${params.container__pandas}"
     label 'io_limited'
     errorStrategy "retry"
 
@@ -170,7 +164,7 @@ df.to_csv("manifest.csv", index=None, sep=",")
 
 // Format the manifest using the output directory for all FTP files
 process reformat_manifest {
-    container "${container__pandas}"
+    container "${params.container__pandas}"
     label 'io_limited'
     errorStrategy "retry"
     publishDir params.output_folder, mode: 'symlink'

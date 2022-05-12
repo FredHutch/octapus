@@ -5,17 +5,9 @@ nextflow.enable.dsl=2
 
 // Set default parameters
 params.help = false
-params.output_folder = false
 params.octapus_results = false
-params.genomes = false
 params.annotation_window = 10000
 params.ftp_threads = 100
-
-// Docker containers reused across processes
-container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
-container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
-container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
-container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.16--1"
 
 // Import modules
 include {
@@ -25,14 +17,10 @@ include {
     clinker;
     sanitize_manifest;
     fetchFTP;
-} from './modules/modules' params(
+} from './modules/modules' addParams(
     output_folder: params.output_folder,
     ftp_threads: params.ftp_threads,
     annotation_window: params.annotation_window,
-    container__pandas: container__pandas,
-    container__plotting: container__plotting,
-    container__biopython: container__biopython,
-    container__clinker: container__clinker,
 )
 
 // Function which prints help message text
@@ -197,7 +185,7 @@ workflow {
 }
 
 process parse_spreadsheet {
-    container "${container__pandas}"
+    container "${params.container__pandas}"
     label 'io_limited'
     errorStrategy "retry"
 

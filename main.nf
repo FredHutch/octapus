@@ -3,34 +3,6 @@
 // Using DSL-2
 nextflow.enable.dsl=2
 
-// Set default parameters
-params.help = false
-params.output_folder = false
-params.output_prefix = false
-params.genomes = false
-params.genomes_local = false
-params.operon = false
-params.operon_list = false
-params.min_identity = 90
-params.min_coverage = 50
-params.max_operon_gap = 10000
-params.batchsize = 100
-params.ftp_threads = 100
-params.max_evalue = 0.001
-params.annotations = false
-params.annotation_window = 10000
-params.cluster_identity = 80
-params.cluster_coverage = 50
-params.mashtree = false
-
-// Docker containers reused across processes
-container__pandas = "quay.io/fhcrc-microbiome/python-pandas:v1.0.3"
-container__biopython = "quay.io/fhcrc-microbiome/biopython-pandas:latest"
-container__plotting = "quay.io/fhcrc-microbiome/boffo-plotting:latest"
-container__clinker = "quay.io/fhcrc-microbiome/clinker:v0.0.16--1"
-container__mmseqs = "quay.io/fhcrc-microbiome/mmseqs2:version-12"
-container__mashtree = "quay.io/hdc-workflows/mashtree:1.2.0"
-
 // Import modules
 include {
     collectResults as collectResultsRound1;
@@ -42,32 +14,18 @@ include {
     extractGBK;
     linclust;
     clinker;
-    sanitize_manifest;
-    sanitize_manifest_local;
     mashtree;
-} from './modules/modules' params(
+} from './modules/modules' addParams(
     output_prefix: params.output_prefix,
     output_folder: params.output_folder,
     ftp_threads: params.ftp_threads,
     annotation_window: params.annotation_window,
     cluster_identity: params.cluster_identity,
     cluster_coverage: params.cluster_coverage,
-    container__pandas: container__pandas,
-    container__plotting: container__plotting,
-    container__biopython: container__biopython,
-    container__clinker: container__clinker,
-    container__mmseqs: container__mmseqs,
-    container__mashtree: container__mashtree,
 )
 
-// Import modules fetchFTP for genome FASTA files
-include {
-    fetchFTP;
-} from './modules/modules' params(
-    ftp_threads: params.ftp_threads,
-    ftp_suffix: "_genomic.fna.gz",
-    local_suffix: ".fasta.gz",
-)
+// Import a sub-workflow used to parse the genomes from the manifest files
+include { parse_genomes } from './modules/parse_genomes'
 
 // Function which prints help message text
 def helpMessage() {
@@ -149,22 +107,31 @@ workflow {
     -----------------------------------------------------------------------
     
     Parameters:
-      genomes:              "${params.genomes}"
-      genomes_local:        "${params.genomes_local}"
-      operon:               "${params.operon}"
-      operon_list:          "${params.operon_list}"
-      output_folder:        "${params.output_folder}"
-      output_prefix:        "${params.output_prefix}"
-      min_identity:         "${params.min_identity}"
-      min_coverage:         "${params.min_coverage}"
-      max_operon_gap:       "${params.max_operon_gap}"
-      batchsize:            "${params.batchsize}"
-      max_evalue:           "${params.max_evalue}"
-      mashtree:             "${params.mashtree}"
-      annotations:          "${params.annotations}"
-      annotation_window:    "${params.annotation_window}"
-      cluster_identity:     "${params.cluster_identity}"
-      cluster_coverage:     "${params.cluster_coverage}"
+      genomes:              ${params.genomes}
+      genomes_local:        ${params.genomes_local}
+      operon:               ${params.operon}
+      operon_list:          ${params.operon_list}
+      output_folder:        ${params.output_folder}
+      output_prefix:        ${params.output_prefix}
+      min_identity:         ${params.min_identity}
+      min_coverage:         ${params.min_coverage}
+      max_operon_gap:       ${params.max_operon_gap}
+      batchsize:            ${params.batchsize}
+      max_evalue:           ${params.max_evalue}
+      mashtree:             ${params.mashtree}
+      annotations:          ${params.annotations}
+      annotation_window:    ${params.annotation_window}
+      cluster_identity:     ${params.cluster_identity}
+      cluster_coverage:     ${params.cluster_coverage}
+
+    Containers:
+      container__biopython: ${params.container__biopython}
+      container__blast:     ${params.container__blast}
+      container__clinker:   ${params.container__clinker}
+      container__mashtree:  ${params.container__mashtree}
+      container__mmseqs:    ${params.container__mmseqs}
+      container__pandas:    ${params.container__pandas}
+      container__plotting:  ${params.container__plotting}
       """.stripIndent()
 
     // Show help message if the user specifies the --help flag at runtime
@@ -174,23 +141,7 @@ workflow {
         // Exit out and do not run anything else
         exit 0
     }
-    // The user must specify genomes and/or genomes_local
-    if (
-        (!params.genomes && !params.genomes_local) 
-    ){
-        log.info"""
 
-        Please specify --genomes and/or --genomes_local that are not empty.
-
-        Use the --help flag for more usage information.
-        
-        """.stripIndent()
-
-        // Exit out and do not run anything else
-        exit 0        
-
-    }
-    
     // The user must specify _either_ --genomes or --operon_list
     if (!params.operon_list && !params.operon){
         log.info"""
@@ -219,86 +170,15 @@ workflow {
         exit 0
     }
 
-    if ( "${params.genomes}" != "false" ) {
-        // Parse the manifest to get a name and FTP prefix for each genome
-        sanitize_manifest(
-            file("${params.genomes}")
-        )
-        sanitize_manifest.out.map {
-            r -> r.splitCsv(
-                header: true
-            )
-        }.flatten(
-        ).branch {
-            remote: it["uri"] == ""
-            local: true
-        }.set {
-            split_genome_ch
-        }
+    // Parse the genomes from the manifest
+    parse_genomes()
 
-        // Download the genomes from the NCBI FTP server
-        fetchFTP(
-            split_genome_ch.remote.map {
-                r -> [
-                    r["GenBank FTP"].split("/")[-1].replaceAll(/"/, ""), // Unique genome ID
-                    r["#Organism Name"],                                 // Readable name
-                    r["GenBank FTP"]                                     // FTP folder containing the genome
-                ]
-            }
-        )
-
-        // Add both sets of files to the combined channel
-        fetchFTP
-            .out
-            .mix(
-                split_genome_ch.local.map {
-                    r -> [
-                        r["uri"].split("/")[-1],
-                        r["#Organism Name"],
-                        file(r["uri"])
-                    ]
-                }
-            )
-            .set{genomes_ch}
-
-    } else {
-
-        genomes_ch = Channel.empty()
-
-    }
-
-    if ( "${params.genomes_local}" != "false" ) {
-        // Parse the manifest to get a name and FTP prefix for each genome
-        sanitize_manifest_local(
-            file("${params.genomes}")
-        )
-        sanitize_manifest_local.out.map {
-            r -> r.splitCsv(
-                header: true
-            )
-        }.flatten(
-        ).map {
-            r -> [
-                    r["uri"].split("/")[-1],
-                    r["#Organism Name"],
-                    file(r["uri"])
-                ]
-        }
-        .set(genomes_local_ch)
-
-    } else {
-
-        genomes_local_ch = Channel.empty()
-
-    }
-
-    genomes_ch
-        .mix(genomes_local_ch)
-        .set{joined_fasta_ch}
+    parse_genomes.out.view()
 
     // Process all FASTA inputs to make sure that their format is valid
     validateFASTA(
-        joined_fasta_ch
+        parse_genomes
+            .out
             .ifEmpty { error "No FASTA inputs found" }
     )
     if (params.mashtree) {
@@ -315,7 +195,7 @@ workflow {
     if (params.operon){
 
         // Point to the operon file
-        operon_fasta = file("${params.genomes}")    // Align the operon against each genome
+        operon_fasta = file("${params.operon}")    // Align the operon against each genome
 
         // Make sure the file is not empty
         if (operon_fasta.isEmpty()){
@@ -482,7 +362,7 @@ workflow {
 // Align the operon against each individual genome
 process runBLAST {
     tag "Align operon"
-    container 'quay.io/fhcrc-microbiome/blast:latest'
+    container "${params.container__blast}"
     label 'io_limited'
     errorStrategy "retry"
 
@@ -519,7 +399,7 @@ echo Done
 // Make a PSSM for each gene in the list of queries
 process makePSSM {
     tag "Identify conserved positions"
-    container 'quay.io/fhcrc-microbiome/blast:latest'
+    container "${params.container__blast}"
     label 'io_limited'
     errorStrategy "retry"
     publishDir "${params.output_folder}", mode: "copy", overwrite: true
@@ -573,7 +453,7 @@ echo Done
 // Align the PSSM for each gene in the operon against each individual genome
 process runPSIBLAST {
     tag "Align PSSM for operon"
-    container 'quay.io/fhcrc-microbiome/blast:latest'
+    container "${params.container__blast}"
     label 'io_limited'
     errorStrategy "retry"
 
@@ -616,7 +496,7 @@ echo Done
 // Parse each individual alignment file
 process parseAlignments {
     tag "Identify operons"
-    container "${container__pandas}"
+    container "${params.container__pandas}"
     label 'io_limited'
     errorStrategy "retry"
 
@@ -809,7 +689,7 @@ print("Done")
 
 // Extract the sequence of the aligned regions
 process extractAlignments {
-    container 'quay.io/fhcrc-microbiome/biopython-pandas:latest'
+    container "${params.container__biopython}"
     label 'io_limited'
     errorStrategy "retry"
 
@@ -898,7 +778,7 @@ print("Done")
 
 // Format FASTA files with aligned sequences
 process formatFASTA {
-    container 'quay.io/fhcrc-microbiome/biopython-pandas:latest'
+    container "${params.container__biopython}"
     label 'io_limited'
     errorStrategy "retry"
     publishDir "${params.output_folder}", mode: "copy", overwrite: true
