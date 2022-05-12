@@ -255,7 +255,6 @@ workflow {
     collectResultsRound1(
         extractAlignments
             .out
-            .ifEmpty{ error "No alignments found" }
             .collate(params.batchsize)
     )
     collectResultsRound2(
