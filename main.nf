@@ -262,10 +262,10 @@ workflow {
 
     // Collect results in rounds
     collectResultsRound1(
-        extractAlignments.out.collate(int(params.batchsize))
+        extractAlignments.out.collate(params.batchsize.toInteger())
     )
     collectResultsRound2(
-        collectResultsRound1.out.collate(int(params.batchsize))
+        collectResultsRound1.out.collate(params.batchsize.toInteger())
     )
 
     // // Make a single output table
