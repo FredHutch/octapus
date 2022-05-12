@@ -180,68 +180,67 @@ workflow {
             .ifEmpty { error "No FASTA inputs found" }
     )
 
-    validateFASTA.out.view()
-    // if (params.mashtree) {
-    //     // Create a tree summarizing whole-genome similarity
-    //     mashtree(
-    //         validateFASTA.out.map({
-    //             it -> it[2]
-    //         }).toSortedList()
-    //     )
-    // }
+    if (params.mashtree) {
+        // Create a tree summarizing whole-genome similarity
+        mashtree(
+            validateFASTA.out.map({
+                it -> it[2]
+            }).toSortedList()
+        )
+    }
 
-    // // Each gene in the operon is represented by a single sequence in a
-    // // multi-FASTA which contains all of the genes in the operon
-    // if ("${params.operon}" != "false"){
+    // Each gene in the operon is represented by a single sequence in a
+    // multi-FASTA which contains all of the genes in the operon
+    if ("${params.operon}" != "false"){
 
-    //     // Point to the operon file
-    //     operon_fasta = file("${params.operon}")    // Align the operon against each genome
+        // Point to the operon file
+        operon_fasta = file("${params.operon}")    // Align the operon against each genome
 
-    //     // Make sure the file is not empty
-    //     if (operon_fasta.isEmpty()){
-    //         log.info"""
-    //         The specified --operon file cannot be found!
-    //         """.stripIndent()
-    //         exit 1
-    //     }
+        // Make sure the file is not empty
+        if (operon_fasta.isEmpty()){
+            log.info"""
+            The specified --operon file cannot be found!
+            """.stripIndent()
+            exit 1
+        }
 
-    //     // Simply run BLAST on each of the genomes
-    //     runBLAST(
-    //         validateFASTA.out,
-    //         operon_fasta
-    //     )
+        // Simply run BLAST on each of the genomes
+        runBLAST(
+            validateFASTA.out,
+            operon_fasta
+        )
 
-    //     // Parse each individual alignment
-    //     parseAlignments(
-    //         runBLAST.out
-    //     )
+        // Parse each individual alignment
+        parseAlignments(
+            runBLAST.out
+        )
 
-    // }else{
+    }else{
 
-    //     // Instead, each gene is specified as its own multi-FASTA
-    //     makePSSM(
-    //         Channel.from(
-    //             "${params.operon_list}".split(",")
-    //         ).flatten(
-    //         ).map {
-    //             r -> [
-    //                 r.split("=")[0], file(r.split("=")[1])
-    //             ]
-    //         }
-    //     )
+        // Instead, each gene is specified as its own multi-FASTA
+        makePSSM(
+            Channel.from(
+                "${params.operon_list}".split(",")
+            ).flatten(
+            ).map {
+                r -> [
+                    r.split("=")[0], file(r.split("=")[1])
+                ]
+            }
+        )
 
-    //     // Run PSIBLAST for each gene against this genome
-    //     runPSIBLAST(
-    //         validateFASTA.out,
-    //         makePSSM.out[0].toSortedList()
-    //     )
+        // Run PSIBLAST for each gene against this genome
+        runPSIBLAST(
+            validateFASTA.out,
+            makePSSM.out[0].toSortedList()
+        )
 
-    //     // Parse each individual alignment
-    //     parseAlignments(
-    //         runPSIBLAST.out
-    //     )
+        // Parse each individual alignment
+        parseAlignments(
+            runPSIBLAST.out
+        )
 
-    // }
+    }
     
     // // Join the parsed alignments with the FASTA for each genome
     // // For each alignment, extract the sequence of the aligned region
