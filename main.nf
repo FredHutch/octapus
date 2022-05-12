@@ -140,6 +140,33 @@ def helpMessage() {
 
 workflow {
 
+    // Print all of the parameters which have been specified by the user
+    log.info"""
+    -----------------------------------------------------------------------
+    Operon ConTextulization Across Prokaryotes to Uncover Synteny (OCTAPUS)
+    Fred Hutch Cancer Center
+    https://github.com/FredHutch/octapus
+    -----------------------------------------------------------------------
+    
+    Parameters:
+      genomes:              "${params.genomes}"
+      genomes_local:        "${params.genomes_local}"
+      operon:               "${params.operon}"
+      operon_list:          "${params.operon_list}"
+      output_folder:        "${params.output_folder}"
+      output_prefix:        "${params.output_prefix}"
+      min_identity:         "${params.min_identity}"
+      min_coverage:         "${params.min_coverage}"
+      max_operon_gap:       "${params.max_operon_gap}"
+      batchsize:            "${params.batchsize}"
+      max_evalue:           "${params.max_evalue}"
+      mashtree:             "${params.mashtree}"
+      annotations:          "${params.annotations}"
+      annotation_window:    "${params.annotation_window}"
+      cluster_identity:     "${params.cluster_identity}"
+      cluster_coverage:     "${params.cluster_coverage}"
+      """.stripIndent()
+
     // Show help message if the user specifies the --help flag at runtime
     if (params.help  || !params.output_folder || !params.output_prefix){
         // Invoke the function above which prints the help message
