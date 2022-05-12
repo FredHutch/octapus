@@ -252,13 +252,15 @@ workflow {
         )
     )
 
-    // Collect results in rounds
-    collectResultsRound1(
-        extractAlignments.out.collate(params.batchsize)
-    )
-    collectResultsRound2(
-        collectResultsRound1.out.collate(params.batchsize)
-    )
+    extractAlignments.out.view()
+
+    // // Collect results in rounds
+    // collectResultsRound1(
+    //     extractAlignments.out.collate(params.batchsize)
+    // )
+    // collectResultsRound2(
+    //     collectResultsRound1.out.collate(params.batchsize)
+    // )
 
     // // Make a single output table
     // collectFinalResults(
