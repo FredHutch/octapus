@@ -232,7 +232,7 @@ workflow {
                     ]
                 }
             )
-            .set(genomes_ch)
+            .set{genomes_ch}
 
     } else {
 
