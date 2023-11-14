@@ -181,6 +181,9 @@ with safe_open(fp_in, "r") as i, safe_open(fp_out, "w") as o:
         if len(header) > 20:
             header = header[:20]
 
+        # Replace any slashes in the contig header
+        header = header.replace("/", "_")
+
         # Get the counter value for this header string
         i = counter.get(header, 0)
 
