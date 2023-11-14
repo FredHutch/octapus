@@ -163,8 +163,16 @@ fp_out = "${uuid}.validated.fasta.gz"
 # Define a counter for each unique header sequence
 counter = {}
 
+
+def safe_open(fp, mode):
+    if fp.endswith(".gz"):
+        return gzip.open(fp, mode + "t")
+    else:
+        return open(fp, mode)
+
+
 # Open the input and output files
-with gzip.open(fp_in, "rt") as i, gzip.open(fp_out, "wt") as o:
+with safe_open(fp_in, "r") as i, safe_open(fp_out, "w") as o:
 
     # Iterate over each input sequence
     for header, seq in SimpleFastaParser(i):
